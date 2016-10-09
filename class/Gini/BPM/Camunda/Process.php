@@ -15,10 +15,10 @@ class Process implements \Gini\BPM\Interface\Process {
     public function start(array $vars) {
         $cvars = Engine::convertVariables($vars);
         $key = $this->id;
-        $rdata = $camunda->call("engine/engine/$engine/process-definition/key/$key/start", [
+        $rdata = $this->camunda->post("process-definition/key/$key/start", [
             'variables' => $cvars,
             'businessKey' => $key . '_'.uniqid(),
         ]);
-        return ProcessInstance($rdata['id']);
+        return new ProcessInstance($this->camunda, $rdata['id'], $rdata);
     }
 }

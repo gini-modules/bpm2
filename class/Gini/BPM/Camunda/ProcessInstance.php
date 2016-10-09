@@ -6,19 +6,28 @@ class ProcessInstance implements \Gini\BPM\Interface\ProcessInstance {
 
     private $camunda;
     private $id;
+    private $data;
 
     public function __construct($camunda, $id) {
         $this->camunda = $camunda;
         $this->id = $id;
     }
 
-    public function start(array $vars) {
-        $cvars = Engine::convertVariables($vars);
-        $key = $this->id;
-        $rdata = $camunda->call("engine/engine/$engine/process-definition/key/$key/start", [
-            'variables' => $cvars,
-            'businessKey' => $key . '_'.uniqid(),
-        ]);
-        return ProcessInstance($this, $rdata['id']);
+    private function _fetchInstance() {
+        if (!$this->data) {
+            $id = $this->id;
+            try {
+                $this->data = $this->camunda->get("process-instance/$id");
+            } catch (\Gini\BPM\Exception $e) {
+                $this->data = [];
+            }
+        }
     }
+
+    public function exists() {
+        $this->_fetchInstance();
+        return isset($this->data['id']);
+    }
+
+    
 }

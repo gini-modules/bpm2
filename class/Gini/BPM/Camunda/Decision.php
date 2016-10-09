@@ -9,7 +9,7 @@ class Decision implements \Gini\BPM\Interface\Decision {
         $this->id = $id;
     }
 
-    public function evaludate(array $vars) {
+    public function evaluate(array $vars) {
         $key = $this->id;
         $cvars = Engine::convertVariables($vars);
         return $camunda->call("engine/engine/$engine/decision-definition/key/$key/evaluate", [
