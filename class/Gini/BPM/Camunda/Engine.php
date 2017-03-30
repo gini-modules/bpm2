@@ -2,7 +2,7 @@
 
 namespace Gini\BPM\Camunda;
 
-class Engine implements \Gini\BPM\Interface\Engine {
+class Engine implements \Gini\BPM\Driver\Engine {
 
     private $http;
     private $root;
@@ -132,7 +132,7 @@ class Engine implements \Gini\BPM\Interface\Engine {
     }
 
     private $_cachedDecisions = [];
-    public function processInstance($id, $data=null) {
+    public function decision($id, $data=null) {
         if (!isset($this->_cachedDecisions[$id])) {
             $this->_cachedDecisions[$id] = new Camunda\Decision($this, $id, $data);
         }

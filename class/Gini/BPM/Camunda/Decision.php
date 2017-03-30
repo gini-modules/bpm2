@@ -2,7 +2,7 @@
 
 namespace Gini\BPM\Camunda;
 
-class Decision implements \Gini\BPM\Interface\Decision {
+class Decision implements \Gini\BPM\Driver\Decision {
 
     public function __construct($camunda, $id) {
         $this->camunda = $camunda;

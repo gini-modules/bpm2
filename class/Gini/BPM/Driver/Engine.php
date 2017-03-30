@@ -1,6 +1,6 @@
 <?php
 
-namespace Gini\BPM\Interface;
+namespace Gini\BPM\Driver;
 
 interface Engine {
     public function deploy($name, $files);
@@ -10,6 +10,6 @@ interface Engine {
     public function decision($id);
 
     public function task($id);
-    public function searchTasks($criteria); // ['token'=>'xxx', 'total'=>12312]
+    public function searchTasks(array $criteria); // ['token'=>'xxx', 'total'=>12312]
     public function getTasks($token, $start, $perPage);
 }

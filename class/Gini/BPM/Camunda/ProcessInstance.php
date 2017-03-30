@@ -2,7 +2,7 @@
 
 namespace Gini\BPM\Camunda;
 
-class ProcessInstance implements \Gini\BPM\Interface\ProcessInstance {
+class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
 
     private $camunda;
     private $id;

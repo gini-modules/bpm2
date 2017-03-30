@@ -1,6 +1,6 @@
 <?php
 
-namespace Gini\BPM\Interface;
+namespace Gini\BPM\Driver;
 
 interface Decision {
     function evaluate(array $vars);
