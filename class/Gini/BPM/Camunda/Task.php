@@ -2,31 +2,29 @@
 
 namespace Gini\BPM\Camunda;
 
-class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
+class Task implements \Gini\BPM\Driver\Task {
 
     private $camunda;
     private $id;
     private $data;
 
-    public function __construct($camunda, $id) {
+    public function __construct($camunda, $id, $data=null) {
         $this->camunda = $camunda;
         $this->id = $id;
+        if ($data) {
+            $this->data = (array) $data;
+        }
     }
 
-    private function _fetchInstance() {
+    private function _fetchTask() {
         if (!$this->data) {
             $id = $this->id;
             try {
-                $this->data = $this->camunda->get("process-instance/$id");
+                $this->data = $this->camunda->get("task/$id");
             } catch (\Gini\BPM\Exception $e) {
                 $this->data = [];
             }
         }
-    }
-
-    public function exists() {
-        $this->_fetchInstance();
-        return isset($this->data['id']);
     }
 
     public function __get($name) {
@@ -41,4 +39,14 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         return $this->data;
     }
 
+    public function setAssignee($userId) {
+        
+    }
+
+    public function submitForm(array $vars) {
+        
+    }
+
+    public function complete() {
+    }
 }

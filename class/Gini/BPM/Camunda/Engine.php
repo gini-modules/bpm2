@@ -18,14 +18,15 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $options = & $this->config['options'];
         $options['engine'] = $options['engine'] ?: 'default';
 
-        $root = $options['api_root'];
+        $this->root = $options['api_root'];
+        $this->engine = $options['engine'];
 
         $this->http = new \Gini\HTTP();
         $this->http->enableCookie()->header('Accept', 'application/json');
 
         $response = $this->http
             ->header('Content-Type', 'application/x-www-form-urlencoded')
-            ->post("$root/admin/auth/user/default/login/cockpit", [
+            ->post("{$this->root}/admin/auth/user/default/login/cockpit", [
                 'username' => $options['username'],
                 'password' => $options['password'],
             ]);
@@ -34,10 +35,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $this->authorizedApps = $data['authorizedApps'];
     }
 
-    public function post($path, $data=[]) {
+    public function post($path, array $data=[]) {
         $response = $this->http
             ->header('Content-Type', 'application/json')
-            ->post("$root/engine/engine/$engine/$path", $data);
+            ->post("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $status = $response->status();
         $data = json_decode($response->body, true);
         if ($status->code != 200) {
@@ -46,10 +47,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $data;
     }
 
-    public function get($path, $data=[]) {
+    public function get($path, array $data=[]) {
         $response = $this->http
             ->header('Content-Type', 'application/json')
-            ->get("$root/engine/engine/$engine/$path", $data);
+            ->get("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $data = json_decode($response->body, true);
         if ($status->code != 200) {
             throw new \Gini\BPM\Exception($data['message']);
@@ -91,7 +92,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
                 ];
             }
         }
-        return $cvars;
+        return (object) $cvars;
     }
 
     public function deploy($name, $files) {
@@ -118,7 +119,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private $_cachedProcesses = [];
     public function process($id) {
         if (!isset($this->_cachedProcesses[$id])) {
-            $this->_cachedProcesses[$id] = new Camunda\Process($this, $id);
+            $this->_cachedProcesses[$id] = new Process($this, $id);
         }
         return $this->_cachedProcesses[$id];
     }
@@ -126,7 +127,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private $_cachedProcessInstances = [];
     public function processInstance($id, $data=null) {
         if (!isset($this->_cachedProcessInstances[$id])) {
-            $this->_cachedProcessInstances[$id] = new Camunda\ProcessInstance($this, $id, $data);
+            $this->_cachedProcessInstances[$id] = new ProcessInstance($this, $id, $data);
         }
         return $this->_cachedProcessInstances[$id];
     }
@@ -134,7 +135,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private $_cachedDecisions = [];
     public function decision($id, $data=null) {
         if (!isset($this->_cachedDecisions[$id])) {
-            $this->_cachedDecisions[$id] = new Camunda\Decision($this, $id, $data);
+            $this->_cachedDecisions[$id] = new Decision($this, $id, $data);
         }
         return $this->_cachedDecisions[$id];
     }
@@ -142,7 +143,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private $_cachedTasks = [];
     public function task($id, $data=null) {
         if (!isset($this->_cachedTasks[$id])) {
-            $this->_cachedTasks[$id] = new Camunda\Task($this, $id, $data);
+            $this->_cachedTasks[$id] = new Task($this, $id, $data);
         }
         return $this->_cachedTasks[$id];
     }
@@ -156,8 +157,15 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['candidateGroups'])) {
             $query['candidateGroups'] = $criteria['candidateGroups'];
         }
+        if (isset($criteria['assignee'])) {
+            $query['assignee'] = $criteria['assignee'];
+        }
+
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token
+        ];
     }
 
     public function getTasks($token, $start=0, $perPage=25) {
@@ -166,7 +174,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (is_array($query)) {
             $rdata = $this->post("task?firstResult=$start&maxResults=$perPage", $query);
             foreach ((array) $rdata as $d) {
-                $tasks[$d['id']] = $this->task ($d['id'], $d);
+                $tasks[$d['id']] = $this->task($d['id'], $d);
             }
         }        
         return $tasks;

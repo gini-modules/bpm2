@@ -12,7 +12,7 @@ class Decision implements \Gini\BPM\Driver\Decision {
     public function evaluate(array $vars) {
         $key = $this->id;
         $cvars = Engine::convertVariables($vars);
-        return $camunda->call("engine/engine/$engine/decision-definition/key/$key/evaluate", [
+        return $this->camunda->post("engine/engine/$engine/decision-definition/key/$key/evaluate", [
             'variables' => $cvars,
         ]);
     }
