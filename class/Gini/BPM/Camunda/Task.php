@@ -28,6 +28,7 @@ class Task implements \Gini\BPM\Driver\Task {
     }
 
     public function __get($name) {
+        $this->_fetchTask();
         if ($name == 'id') {
             return $this->id;
         }
@@ -36,17 +37,64 @@ class Task implements \Gini\BPM\Driver\Task {
     }
 
     public function getData() {
+        $this->_fetchTask();
         return $this->data;
     }
 
     public function setAssignee($userId) {
-        
+        if (!$this->id) return false;
+        try {
+            $this->camunda->post("task/{$this->id}/assignee", [
+                 'userId' => $userId,
+            ]);
+            unset($this->data);
+            return true;
+        } catch (\Gini\BPM\Exception $e) {
+            return false;
+        }
+    }
+
+    public function claim($userId) {
+        if (!$this->id) return false;
+        try {
+            $this->camunda->post("task/{$this->id}/claim", [
+                'userId' => $userId,
+            ]);
+            unset($this->data);
+            return true;
+        } catch (\Gini\BPM\Exception $e) {
+            return false;
+        }
+    }
+
+    public function unclaim() {
+        if (!$this->id) return false;
+        try {
+            $this->camunda->post("task/{$this->id}/unclaim");
+            unset($this->data);
+            return true;
+        } catch (\Gini\BPM\Exception $e) {
+            return false;
+        }
     }
 
     public function submitForm(array $vars) {
         
     }
 
-    public function complete() {
+    public function complete(array $vars=[]) {
+        if (!$this->id) return false;
+
+        $cvars = Engine::convertVariables($vars);
+        $id = $this->id;
+        try {
+            $this->camunda->post("task/$id/complete", [
+                 'variables' => $cvars,
+            ]);
+            unset($this->data); // 让系统能重新抓取数据
+            return true;
+        } catch (\Gini\BPM\Exception $e) {
+            return false;
+        }
     }
 }

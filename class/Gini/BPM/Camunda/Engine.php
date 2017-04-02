@@ -41,7 +41,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             ->post("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $status = $response->status();
         $data = json_decode($response->body, true);
-        if ($status->code != 200) {
+        if (floor($status->code/100) != 2) {
             throw new \Gini\BPM\Exception($data['message']);
         }
         return $data;
@@ -51,8 +51,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $response = $this->http
             ->header('Content-Type', 'application/json')
             ->get("{$this->root}/engine/engine/{$this->engine}/$path", $data);
+        $status = $response->status();
         $data = json_decode($response->body, true);
-        if ($status->code != 200) {
+        if (floor($status->code/100) != 2) {
             throw new \Gini\BPM\Exception($data['message']);
         }
         return $data;
@@ -151,11 +152,14 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private $_cachedQuery = [];
     public function searchTasks(array $criteria) {
         $query = [];
-        if (isset($criteria['processDefinitionKey'])) {
-            $query['processDefinitionKey'] = $criteria['processDefinitionKey'];
+        if (isset($criteria['process'])) {
+            $query['processDefinitionKey'] = $criteria['process'];
         }
-        if (isset($criteria['candidateGroups'])) {
-            $query['candidateGroups'] = $criteria['candidateGroups'];
+        if (isset($criteria['group'])) {
+            $query['candidateGroup'] = $criteria['group'];
+        }
+        if (isset($criteria['candidate'])) {
+            $query['candidateUser'] = $criteria['candidate'];
         }
         if (isset($criteria['assignee'])) {
             $query['assignee'] = $criteria['assignee'];
