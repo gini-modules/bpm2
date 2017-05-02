@@ -46,4 +46,21 @@ class Task extends \Gini\Controller\CLI {
         }
     }
 
+    // e.g.: gini bpm task assign bpm=camunda id=ec62ef49-16c3-11e7-a73c-0242ac112a08 to=user
+    public function actionAssign($args) {
+        $opt = $this->getOpt($args);
+        $engine = $this->getEngine($opt);
+
+        $opt['id'] or die("You need to specify a task id!");
+
+        $task = $engine->task($opt['id']);
+        $vars = array_diff_key($opt, ['_'=>1, 'bpm'=>1, 'id'=>1]);
+        $success = $task->setAssignee($vars['to']);
+        if ($success) {
+            echo "Assigned to {$vars['to']}\n";
+        } else {
+            echo "Failed to assign the task to {$vars['to']}\n";
+        }
+    }
+
 }
