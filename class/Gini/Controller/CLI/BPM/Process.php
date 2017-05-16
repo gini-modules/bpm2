@@ -10,10 +10,10 @@ class Process extends \Gini\Controller\CLI {
     public function actionStart($args) {
         $opt = $this->getOpt($args);
         $engine = $this->getEngine($opt);
-        
+
         $opt['key'] or die("You need to specify Process key!");
         $data = array_diff_key($opt, ['_'=>1, 'bpm'=>1, 'key'=>1]);
-
+        $data['school'] = (int) 42;
         $process = $engine->process($opt['key']);
         $instance = $process->start($data);
         if ($instance->id) {
@@ -23,4 +23,12 @@ class Process extends \Gini\Controller\CLI {
         }
     }
 
+    public function actionGet($args)
+    {
+        $opt = $this->getOpt($args);
+        $engine = $this->getEngine($opt);
+        $process = $engine->process($opt['key']);
+        $instance = $process->get($opt['key']);
+        var_dump($instance);
+    }
 }

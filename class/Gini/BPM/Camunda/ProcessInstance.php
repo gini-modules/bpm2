@@ -33,7 +33,7 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         if ($name == 'id') {
             return $this->id;
         }
-        
+
         return $this->data[$name];
     }
 

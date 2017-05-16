@@ -4,6 +4,8 @@ namespace Gini\BPM\Driver;
 
 interface Engine {
     public function deploy($name, $files);
+    public function fetchProcessInstance($processName, $instancID);
+    public function startProcessInstance($processName, $data, $tag);
     public function process($id);
     public function processInstance($id);
 

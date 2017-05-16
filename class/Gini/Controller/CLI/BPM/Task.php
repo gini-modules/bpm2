@@ -12,6 +12,7 @@ class Task extends \Gini\Controller\CLI {
         $engine = $this->getEngine($opt);
 
         $criteria = array_diff_key($opt, ['_'=>1, 'bpm'=>1]);
+
         $o = $engine->searchTasks($criteria);
         $tasks = $engine->getTasks($o->token);
         foreach ($tasks as $task) {
