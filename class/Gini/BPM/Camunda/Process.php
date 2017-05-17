@@ -31,6 +31,7 @@ class Process implements \Gini\BPM\Driver\Process {
         $cvars = Engine::convertVariables($vars);
         $key = $this->id;
         $tag = $vars['tag'];
+
         $rdata = $this->camunda->post("process-definition/key/$key/start", [
             'variables' => $cvars,
             'businessKey' => $tag,

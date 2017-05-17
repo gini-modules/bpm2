@@ -100,152 +100,133 @@ class Task implements \Gini\BPM\Driver\Task {
         }
     }
 
-    private function _doUpdate($data, $description)
+    private function _doUpdate(array $vars)
     {
-        $task = $this->rdata;
+        $now = date('Y-m-d H:i:s');
+        $user = $vars['user'];
+        $message = $vars['message'];
+        $status = $vars['status'];
+        $opt = $vars['opt'];
+        $rtask = $this->rdata;
+        $candidate_group_title = $this->getCandidateGroupTitle($rtask);
+
+        $upData = [
+            'status'=> $status,
+            'message'=> $message,
+            'date'=> $now,
+            'group'=> $candidate_group_title,
+            'user'=> $user->name
+        ];
+
+        $description = [
+            'a' => T('**:group** **:name** **:opt**', [
+                ':group'=> $candidate_group_title,
+                ':name' => $user->name,
+                ':opt' => $opt
+            ]),
+            't' => $now,
+            'u' => $user->id,
+            'd' => $message,
+        ];
+
         $customizedMethod = ['\\Gini\\Process\\Engine\\SJTU\\Task', 'doUpdate'];
         if (method_exists('\\Gini\\Process\\Engine\\SJTU\\Task', 'doUpdate')) {
-            $bool = call_user_func($customizedMethod, $task, $description);
+            $bool = call_user_func($customizedMethod, $rtask, $description);
         }
 
         if (!$bool) return;
-        return $task->update($data);
+        return $rtask->update($upData);
+    }
+
+    private function _doComplete($process, $opt = false)
+    {
+        $rules = $process->rdata->rules;
+        $steps = $rules['steps'];
+        $option = $rules['option'];
+        $callback = $rules['callback'];
+        $assignee = $this->data['assignee'];
+        $step_now = explode('-', $assignee);
+
+        if (!count($steps)) return ;
+
+        foreach ($steps as $step) {
+            if (in_array($step, $step_now)) {
+                $full_option = $step.'_'.$option;
+                break;
+            }
+        }
+
+        $params[$full_option] = $opt ? true : false;
+        return $this->complete($params);
     }
 
     public function approve($process, $message=null, $user=null)
     {
-        $id = $this->id;
-        $now = date('Y-m-d H:i:s');
         $user = $user ?: _G('ME');
+        $rules = $process->rdata->rules;
+        $callback = $rules['callback'];
 
-        if (!$id || !$user->id) return ;
+        if (!$this->id || !$user->id || !$callback) return ;
 
-        $steps = $process->rdata->rules;
-        $steps_keys = array_keys($steps);
-        $assignee = $this->data['assignee'];
-        $step_now = explode('-', $assignee);
-
-        foreach ($steps as $step => $opts) {
-            if (in_array($step, $step_now)) {
-                $opt = $step.'_'.$opts['opt'];
-                $key = array_search($step, $steps_keys);
-                $key++;
-                $next_step_key = $steps_keys[$key];
-                $next_step_opt = $steps[$step]['approved'];
-                $callback = $opts['callback'];
-                break;
-            }
-        }
-
-        if (!$callback) return ;
-
-        $params[$opt] = true;
         $search_params['active'] = true;
         $search_params['instance'] = $this->processInstanceId;
 
-        if ($next_step_key && $next_step_opt){
-            $params[$next_step_opt] = $next_step_key;
-        } else {
-            $isComplete =true ;
-        }
-
-        //TODO 这里似乎逻辑不太合理，想不到更好的
-        $bool = $this->complete($params);
+        $bool = $this->_doComplete($process, true);
         if ($bool) {
-            $task = $this->rdata;
-            $upData = [
-                'status'=> \Gini\ORM\SJTU\BPM\Process\Task::STATUS_APPROVED,
-                'message'=> $message,
-                'date'=> $now,
-                'group'=> $this->getCandidateGroupTitle($task),
-                'user'=> $user->name
-            ];
-            $description = [
-                'a' => T('**:group** **:name** **审核通过**', [
-                    ':group'=> $this->getCandidateGroupTitle($task),
-                    ':name' => $user->name
-                ]),
-                't' => $now,
-                'u' => $user->id,
-                'd' => $message,
-            ];
 
-            $ret = $this->_doUpdate($upData, $description);
+            $rtask = $this->rdata;
+            $params['status'] = \Gini\ORM\SJTU\BPM\Process\Task::STATUS_APPROVED;
+            $params['user'] = $user;
+            $params['message'] = $message;
+            $params['opt'] = T('审核通过');
+
+            $ret = $this->_doUpdate($params);
             if ($ret) {
-                if ($isComplete) {
-                    $customizedMethod = [$callback, 'pass'];
-                    if (method_exists($callback, 'pass')) {
-                        $bool = call_user_func($customizedMethod, $task);
-                        return $bool;
-                    }
-                    return ;
-                }
-
                 $o = $this->camunda->searchTasks($search_params);
                 $tasks = $this->camunda->getTasks($o->token);
-                if (count($tasks)) {
-                    $process_instance = $task->instance;
+
+                if ($o->total) {
+                    $process_instance = $rtask->instance;
                     $result = $this->camunda->createTask($tasks, $process, $process_instance);
                     return $result;
                 }
-                return true;
+
+                $customizedMethod = [$callback, 'pass'];
+                if (method_exists($callback, 'pass')) {
+                    return call_user_func($customizedMethod, $rtask);
+                }
             }
         }
-
-        return false;
+        return ;
     }
 
     public function reject($process, $message=null, $user=null)
     {
-        $id = $this->id;
-        $now = date('Y-m-d H:i:s');
         $user = $user ?: _G('ME');
+        $rules = $process->rdata->rules;
+        $callback = $rules['callback'];
 
-        if (!$id || !$user->id) return ;
+        if (!$this->id || !$user->id || !$callback) return ;
 
-        $steps = $process->rdata->rules;
-        $steps_keys = array_keys($steps);
-        $assignee = $this->data['assignee'];
-        $step_now = explode('-', $assignee);
-
-        foreach ($steps as $step => $opts) {
-            if (in_array($step, $step_now)) {
-                $opt = $step.'_'.$opts['opt'];
-                $callback = $opts['callback'];
-                break;
-            }
-        }
-        $params[$opt] = false;
-        $bool = $this->complete($params);
-
+        $bool = $this->_doComplete($process);
         if ($bool) {
-            $task = $this->rdata;
-            $upData = [
-                'status'=> \Gini\ORM\SJTU\BPM\Process\Task::STATUS_UNAPPROVED,
-                'message'=> $message,
-                'date'=> $now,
-                'group'=> $this->getCandidateGroupTitle($task),
-                'user'=> $user->name
-            ];
-            $description = [
-                'a' => T('**:group** **:name** **拒绝**', [
-                    ':group'=> $this->getCandidateGroupTitle($task),
-                    ':name' => $user->name
-                ]),
-                't' => $now,
-                'u' => $user->id,
-                'd' => $message,
-            ];
-            $ret = $this->_doUpdate($upData, $description);
+            $rtask = $this->rdata;
+            $params['status'] = \Gini\ORM\SJTU\BPM\Process\Task::STATUS_UNAPPROVED;
+            $params['user'] = $user;
+            $params['message'] = $message;
+            $params['opt'] = T('拒绝');
+
+            $ret = $this->_doUpdate($params);
             if ($ret) {
                 $customizedMethod = [$callback, 'reject'];
                 if (method_exists($callback, 'reject')) {
-                    $bool = call_user_func($customizedMethod, $task);
+                    $bool = call_user_func($customizedMethod, $rtask);
                     return $bool;
                 }
             }
         }
-        return false;
+
+        return ;
     }
 
     public function complete(array $vars=[]) {

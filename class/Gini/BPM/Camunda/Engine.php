@@ -169,17 +169,16 @@ class Engine implements \Gini\BPM\Driver\Engine {
                 throw new \Gini\BPM\Exception();
             }
 
-            $data['tag'] = $tag;
-            $instance = $process->start($data);
-
-            if (!$instance->id) {
-                throw new \Gini\BPM\Exception();
-            }
-
-            $process = a('sjtu/bpm/process', ['name' => $processName]);
             $process_instance = a('sjtu/bpm/process/instance', ['tag'=> $tag]);
             if (!$process_instance->id) {
-                $process_instance->process = $process;
+                $data['tag'] = $tag;
+                $instance = $process->start($data);
+
+                if (!$instance->id) {
+                    throw new \Gini\BPM\Exception();
+                }
+
+                $process_instance->process = $process->rdata;
                 $process_instance->data = $data;
                 $process_instance->tag = $tag;
                 $process_instance->key = $instance->id;
@@ -187,18 +186,18 @@ class Engine implements \Gini\BPM\Driver\Engine {
                 if (!$process_instance->save()) {
                     throw new \Gini\BPM\Exception();
                 }
+
+                $params['active'] = true;
+                $params['instance'] = $instance->id;
+                $o = $this->searchTasks($params);
+                $tasks = $this->getTasks($o->token);
+                $bool = $this->createTask($tasks, $process, $process_instance);
+                if (!$bool) {
+                    throw new \Gini\BPM\Exception();
+                }
             }
 
-            $params['active'] = true;
-            $params['instance'] = $instance->id;
-            $o = $this->searchTasks($params);
-            $tasks = $this->getTasks($o->token);
-            $bool = $this->createTask($tasks, $process, $process_instance);
-            if (!$bool) {
-                throw new \Gini\BPM\Exception();
-            }
-
-            return $instance;
+            return $process_instance;
         } catch (\Gini\BPM\Exception $e) {
             return ;
         }
@@ -302,10 +301,17 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $query['sortBy'] = 'created';
         $query['sortOrder'] = 'desc';
 
+        try {
+            $rdata = $this->post("task/count", $query);
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
+        }
+
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
-            'token' => $token
+            'token' => $token,
+            'total' => $rdata['count']
         ];
     }
 
