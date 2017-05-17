@@ -7,10 +7,17 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
     private $camunda;
     private $id;
     private $data;
+    private $rdata;
 
     public function __construct($camunda, $id) {
         $this->camunda = $camunda;
         $this->id = $id;
+        $this->rdata = $this->_fetchRdata();
+    }
+
+    private function _fetchRdata()
+    {
+        return a('sjtu/bpm/process/instance', ['key' => $this->id]);
     }
 
     private function _fetchInstance() {
@@ -33,7 +40,7 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         if ($name == 'id') {
             return $this->id;
         }
-        
+
         return $this->data[$name];
     }
 

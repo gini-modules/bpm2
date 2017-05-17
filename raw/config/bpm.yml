@@ -1,9 +1,9 @@
 ---
-# camunda:
-#  driver: Camunda
-  # options:
-  #   engine: default
-  #   api_root: http://camunda.xxx.com/camunda/api
-  #   username: xxx
-  #   password: xxx
+camunda:
+ driver: Camunda
+ options:
+   engine: default
+   api_root: http://camunda.genee.cn/api
+   username: demo
+   password: demo
 ...
