@@ -213,7 +213,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
         foreach ($tasks as $data) {
             $task = a('sjtu/bpm/process/task', ['key' => $data->id]);
             if (!$task->id) {
-                $task->process = $process;
+                $task->process = $process->rdata;
                 $task->instance = $process_instance;
                 $task->candidate_group = $data->assignee;
                 $task->position = $data->assignee;
@@ -319,10 +319,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
                 return $tasks;
             }
 
+
             foreach ((array) $rdata as $d) {
                 $tasks[$d['id']] = $this->task($d['id'], $d);
             }
         }
+
         return $tasks;
     }
 

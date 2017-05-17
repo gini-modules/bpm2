@@ -7,10 +7,12 @@ class Task implements \Gini\BPM\Driver\Task {
     private $camunda;
     private $id;
     private $data;
+    private $rdata;
 
     public function __construct($camunda, $id, $data=null) {
         $this->camunda = $camunda;
         $this->id = $id;
+        $this->rdata = $this->_fetchRdata();
         if ($data) {
             $this->data = (array) $data;
         }
@@ -25,6 +27,10 @@ class Task implements \Gini\BPM\Driver\Task {
                 $this->data = [];
             }
         }
+    }
+
+    private function _fetchRdata() {
+        return a('sjtu/bpm/process/task', ['key' => $this->id]);
     }
 
     public function __get($name) {
@@ -86,111 +92,102 @@ class Task implements \Gini\BPM\Driver\Task {
     {
         if (!$task->id) return ;
         $id = $task->candidate_group;
-        $rdata = $this->camunda->get("group/$id");
-        return $rdata['name'];
-    }
-
-    public function update($task, array $data=[])
-    {
-        foreach ($data as $k=>$v) {
-            $task->$k = $v;
+        try {
+            $rdata = $this->camunda->get("group/$id");
+            return $rdata['name'];
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
         }
-        return $task->save();
     }
 
-    private function _doUpdate($user, $task, $message)
+    private function _doUpdate($data, $description)
     {
-        $now = date('Y-m-d H:i:s');
-        $user = $user ?: _G('ME');
-        $upData = [
-            'status'=> \Gini\ORM\SJTU\BPM\Process\Task::STATUS_APPROVED,
-            'message'=> $message,
-            'date'=> $now,
-            'group'=> $this->getCandidateGroupTitle($task),
-            'user'=> $user->name
-        ];
-        $description = [
-            'a' => T('**:group** **:name** **审核通过**', [
-                ':group'=> $this->getCandidateGroupTitle($task),
-                ':name' => $user->name
-            ]),
-            't' => $now,
-            'u' => $user->id,
-            'd' => $message,
-        ];
-
+        $task = $this->rdata;
         $customizedMethod = ['\\Gini\\Process\\Engine\\SJTU\\Task', 'doUpdate'];
         if (method_exists('\\Gini\\Process\\Engine\\SJTU\\Task', 'doUpdate')) {
             $bool = call_user_func($customizedMethod, $task, $description);
         }
 
         if (!$bool) return;
-        return $this->update($task, $upData);
+        return $task->update($data);
     }
 
-    public function approve($comment = '')
+    public function approve($process, $message=null, $user=null)
     {
         $id = $this->id;
-        $me = _G('ME');
-        if (!$id || !$me->id) return ;
+        $now = date('Y-m-d H:i:s');
+        $user = $user ?: _G('ME');
 
-        if ($comment) {
-            $bool = $this->_addComment($id, $comment);
-            if (!$bool) return ;
-        }
+        if (!$id || !$user->id) return ;
 
-        $steps = \Gini\Config::get('app.order_review_process_steps');
-        if (!count($steps)) return ;
-
-        try {
-            $task = $this->camunda->getTask($id);
-            if (!$task->id) return ;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
-
-        $assignee = $task->data['assignee'];
+        $steps = $process->rdata->rules;
+        $steps_keys = array_keys($steps);
+        $assignee = $this->data['assignee'];
         $step_now = explode('-', $assignee);
 
-        foreach ($steps as $step) {
+        foreach ($steps as $step => $opts) {
             if (in_array($step, $step_now)) {
-                $opt = $step.'_approved';
-                $key = array_search($step, $steps);
+                $opt = $step.'_'.$opts['opt'];
+                $key = array_search($step, $steps_keys);
                 $key++;
-                $next_step = $steps[$key];
+                $next_step_key = $steps_keys[$key];
+                $next_step_opt = $steps[$step]['approved'];
+                $callback = $opts['callback'];
                 break;
             }
         }
 
-        $params[$opt] = true;
-        $params['delegationState'] = 'complete';
-        $search_params['active'] = true;
-        $search_params['instance'] = $task->processInstanceId;
+        if (!$callback) return ;
 
-        if ($next_step){
-            $params[$next_step.'_approve'] = $next_step;
+        $params[$opt] = true;
+        $search_params['active'] = true;
+        $search_params['instance'] = $this->processInstanceId;
+
+        if ($next_step_key && $next_step_opt){
+            $params[$next_step_opt] = $next_step_key;
         } else {
             $isComplete =true ;
         }
 
+        //TODO 这里似乎逻辑不太合理，想不到更好的
         $bool = $this->complete($params);
         if ($bool) {
-            $task = a('sjtu/bpm/process/task', ['key' => $id]);
-            $ret = $this->_doUpdate($me, $task, $comment);
+            $task = $this->rdata;
+            $upData = [
+                'status'=> \Gini\ORM\SJTU\BPM\Process\Task::STATUS_APPROVED,
+                'message'=> $message,
+                'date'=> $now,
+                'group'=> $this->getCandidateGroupTitle($task),
+                'user'=> $user->name
+            ];
+            $description = [
+                'a' => T('**:group** **:name** **审核通过**', [
+                    ':group'=> $this->getCandidateGroupTitle($task),
+                    ':name' => $user->name
+                ]),
+                't' => $now,
+                'u' => $user->id,
+                'd' => $message,
+            ];
+
+            $ret = $this->_doUpdate($upData, $description);
             if ($ret) {
+                if ($isComplete) {
+                    $customizedMethod = [$callback, 'pass'];
+                    if (method_exists($callback, 'pass')) {
+                        $bool = call_user_func($customizedMethod, $task);
+                        return $bool;
+                    }
+                    return ;
+                }
+
                 $o = $this->camunda->searchTasks($search_params);
                 $tasks = $this->camunda->getTasks($o->token);
                 if (count($tasks)) {
-                    $processName = \Gini\Config::Get('app.order_review_process');
-                    $process = a('sjtu/bpm/process', ['name' => $processName]);
                     $process_instance = $task->instance;
-                    $this->camunda->createTask($tasks, $process, $process_instance);
+                    $result = $this->camunda->createTask($tasks, $process, $process_instance);
+                    return $result;
                 }
-
-                if ($isComplete) {
-
-                }
-
                 return true;
             }
         }
@@ -198,52 +195,57 @@ class Task implements \Gini\BPM\Driver\Task {
         return false;
     }
 
-    public function reject($comment = '')
+    public function reject($process, $message=null, $user=null)
     {
         $id = $this->id;
-        if (!$comment || !$id) return ;
+        $now = date('Y-m-d H:i:s');
+        $user = $user ?: _G('ME');
 
-        $bool = $this->_addComment($id, $comment);
-        if (!$bool) {
-            return ;
-        }
+        if (!$id || !$user->id) return ;
 
-        $steps = \Gini\Config::get('app.order_review_process_steps');
-        if (!count($steps)) return ;
-        try {
-            $task = $this->camunda->getTask($id);
-            if (!$task->id) {
-                return ;
-            }
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
-
-        $assignee = $task->data['assignee'];
+        $steps = $process->rdata->rules;
+        $steps_keys = array_keys($steps);
+        $assignee = $this->data['assignee'];
         $step_now = explode('-', $assignee);
 
-        foreach ($steps as $step) {
+        foreach ($steps as $step => $opts) {
             if (in_array($step, $step_now)) {
-                $opt = $step.'_approved';
+                $opt = $step.'_'.$opts['opt'];
+                $callback = $opts['callback'];
                 break;
             }
         }
-
         $params[$opt] = false;
+        $bool = $this->complete($params);
 
-        return $this->complete($params);
-    }
-
-    private function _addComment($task_id = '', $comment = '')
-    {
-        if (!$task_id || !$comment) return ;
-
-        $query['message'] = $comment;
-        try {
-            return $this->camunda->post("task/$task_id/comment/create", $query);
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
+        if ($bool) {
+            $task = $this->rdata;
+            $upData = [
+                'status'=> \Gini\ORM\SJTU\BPM\Process\Task::STATUS_UNAPPROVED,
+                'message'=> $message,
+                'date'=> $now,
+                'group'=> $this->getCandidateGroupTitle($task),
+                'user'=> $user->name
+            ];
+            $description = [
+                'a' => T('**:group** **:name** **拒绝**', [
+                    ':group'=> $this->getCandidateGroupTitle($task),
+                    ':name' => $user->name
+                ]),
+                't' => $now,
+                'u' => $user->id,
+                'd' => $message,
+            ];
+            $ret = $this->_doUpdate($upData, $description);
+            if ($ret) {
+                $customizedMethod = [$callback, 'reject'];
+                if (method_exists($callback, 'reject')) {
+                    $bool = call_user_func($customizedMethod, $task);
+                    return $bool;
+                }
+            }
         }
+        return false;
     }
 
     public function complete(array $vars=[]) {
@@ -256,6 +258,7 @@ class Task implements \Gini\BPM\Driver\Task {
             $result = $this->camunda->post("task/$id/complete", [
                  'variables' => $cvars,
             ]);
+
             if (!$result) {
                 throw new \Gini\Process\Engine\Exception();
             }

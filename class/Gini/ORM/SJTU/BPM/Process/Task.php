@@ -31,5 +31,12 @@ class Task extends \Gini\ORM\Object
             self::STATUS_UNAPPROVED
         ]);
     }
-}
 
+    public function update(array $data=[])
+    {
+        foreach ($data as $k=>$v) {
+            $this->$k = $v;
+        }
+        return $this->save();
+    }
+}

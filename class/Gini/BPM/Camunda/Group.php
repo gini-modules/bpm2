@@ -13,6 +13,7 @@ class Group implements \Gini\BPM\Driver\Group
     {
         $this->camunda = $camunda;
         $this->id = $id;
+
         if ($data) {
             $this->name = $data['name'];
             $this->type = $data['type'];
@@ -21,6 +22,31 @@ class Group implements \Gini\BPM\Driver\Group
 
     public function __get($name) {
         return $this->$name;
+    }
+
+    public function remove()
+    {
+        if (!$id = $this->id) return ;
+
+        try {
+            $result = $this->camunda->delete("group/$id");
+            return $result;
+        } catch (\Gini\BPM\Exception $e) {
+            return false;
+        }
+    }
+
+    public function update(array $criteria)
+    {
+        $id = $this->id;
+
+        if (!$id || !$criteria['id'] || !$criteria['name'] || !$criteria['type']) return ;
+        try {
+            $result = $this->camunda->put("group/$id", $criteria);
+            return $result;
+        } catch (\Gini\BPM\Exception $e) {
+            return false;
+        }
     }
 
     public function getMembers()
