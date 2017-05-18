@@ -25,12 +25,14 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $this->http->enableCookie()->header('Accept', 'application/json');
 
         $response = $this->http
-            ->header('Content-Type', 'application/x-www-form-urlencoded')
+            ->header('Content-Type', 'application/json')
             ->post("{$this->root}/admin/auth/user/default/login/cockpit", [
                 'username' => $options['username'],
                 'password' => $options['password'],
             ]);
+
         $rdata = json_decode($response->body, true);
+
         $this->userId = $rdata['userId'];
         $this->authorizedApps = $data['authorizedApps'];
     }
@@ -49,7 +51,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
     public function get($path, array $data=[]) {
         $response = $this->http
-            ->header('Content-Type', '')
+            ->header('Content-Type', 'application/x-www-form-urlencoded')
             ->get("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $status = $response->status();
         $data = json_decode($response->body, true);
@@ -212,10 +214,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedGroups = [];
-    public function group($id, $data = [])
+    public function group($id = '')
     {
         if (!isset($this->_cachedGroups[$id])) {
-            $this->_cachedGroups[$id] = new Group($this, $id, $data);
+            $this->_cachedGroups[$id] = new Group($this, $id);
         }
         return $this->_cachedGroups[$id];
     }
@@ -275,21 +277,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $groups;
     }
 
-    //Creates a new group.
-    public function addGroup(array $criteria)
-    {
-        if (!$criteria['id'] || !$criteria['name'] || !$criteria['type']) return ;
-
-        try {
-            $rdata = $this->post("group/create", $criteria);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
-    }
-
     private $_cachedUsers = [];
-    public function user($id) {
+    public function user($id = '')
+    {
         if (!isset($this->_cachedUsers[$id])) {
             $this->_cachedUsers[$id] = new User($this, $id);
         }
@@ -366,29 +356,5 @@ class Engine implements \Gini\BPM\Driver\Engine {
         }
 
         return $users;
-    }
-
-    //Create a new user.
-    public function addUser($criteria)
-    {
-        if (!$criteria['id'] ||
-            !$criteria['firstName'] ||
-            !$criteria['lastName'] ||
-            !$criteria['email'] ||
-            !$criteria['password']
-        ) return ;
-
-        $query['profile']['id'] = $criteria['id'];
-        $query['profile']['firstName'] = $criteria['firstName'];
-        $query['profile']['lastName'] = $criteria['lastName'];
-        $query['profile']['email'] = $criteria['email'];
-        $query['credentials']['password'] = $criteria['password'];
-
-        try {
-            $rdata = $this->post("user/create", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
     }
 }

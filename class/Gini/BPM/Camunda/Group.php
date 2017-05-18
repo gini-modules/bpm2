@@ -5,16 +5,12 @@ namespace Gini\BPM\Camunda;
 class Group implements \Gini\BPM\Driver\Group
 {
     private $camunda;
-    public function __construct($camunda, $id, $data=null)
+    public function __construct($camunda, $id = '')
     {
         $this->camunda = $camunda;
-        $this->id = $id;
-
-        if (!$data) {
+        if ($id) {
+            $this->id = $id;
             $this->_fetchData();
-        } else {
-            $this->name = $data['name'];
-            $this->type = $data['type'];
         }
     }
 
@@ -22,9 +18,27 @@ class Group implements \Gini\BPM\Driver\Group
         $id = $this->id;
         try {
             $rdata = $this->camunda->get("group/$id");
-            $this->name = $rdata['name'];
-            $this->type = $rdata['type'];
+            foreach ($rdata as $key => $value) {
+                $this->$key = $value;
+            }
         } catch (\Gini\BPM\Exception $e) {
+        }
+    }
+
+    //Creates a new group.
+    public function create(array $criteria)
+    {
+        if (!$criteria['id'] || !$criteria['name'] || !$criteria['type']) return ;
+
+        $query['id'] = $criteria['id'];
+        $query['name'] = $criteria['name'];
+        $query['type'] = $criteria['type'];
+
+        try {
+            $rdata = $this->camunda->post("group/create", $query);
+            return empty($rdata) ? true : $rdata;
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
         }
     }
 

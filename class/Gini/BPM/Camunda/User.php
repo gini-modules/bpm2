@@ -6,20 +6,45 @@ class User implements \Gini\BPM\Driver\User
 {
     private $camunda;
 
-    public function __construct($camunda, $id) {
+    public function __construct($camunda, $id = '') {
         $this->camunda = $camunda;
-        $this->id = $id;
-        $this->_fetchData();
+        if ($id) {
+            $this->id = $id;
+            $this->_fetchData();
+        }
     }
 
     private function _fetchData() {
         $id = $this->id;
         try {
             $rdata = $this->camunda->get("user/$id/profile");
-            foreach ($rdata as $key => $d) {
-                $this->$key = $d;
+            foreach ($rdata as $key => $value) {
+                $this->$key = $value;
             }
         } catch (\Gini\BPM\Exception $e) {
+        }
+    }
+
+    public function create(array $criteria)
+    {
+        if (!$criteria['id'] ||
+            !$criteria['firstName'] ||
+            !$criteria['lastName'] ||
+            !$criteria['email'] ||
+            !$criteria['password']
+        ) return ;
+
+        $query['profile']['id'] = $criteria['id'];
+        $query['profile']['firstName'] = $criteria['firstName'];
+        $query['profile']['lastName'] = $criteria['lastName'];
+        $query['profile']['email'] = $criteria['email'];
+        $query['credentials']['password'] = $criteria['password'];
+
+        try {
+            $rdata = $this->camunda->post("user/create", $query);
+            return empty($rdata) ? true : $rdata;
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
         }
     }
 
@@ -61,16 +86,13 @@ class User implements \Gini\BPM\Driver\User
     }
 
     //Updates a user’s credentials (password).
-    public function updatePassWord(array $criteria)
+    public function changePassword($password, $newpassword)
     {
         $id = $this->id;
-        if (!$id ||
-            !$criteria['newpassword'] ||
-            !$criteria['password']
-        ) return;
+        if (!$id || !$password || !$newpassword) return;
 
-        $query['password'] = $criteria['newpassword'];
-        $query['authenticatedUserPassword'] = $criteria['password'];
+        $query['password'] = $newpassword;
+        $query['authenticatedUserPassword'] = $password;
 
         try {
             $rdata = $this->camunda->put("user/$id/credentials", $query);
