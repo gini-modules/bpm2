@@ -49,13 +49,40 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
     public function get($path, array $data=[]) {
         $response = $this->http
-            ->header('Content-Type', 'application/json')
+            ->header('Content-Type', '')
             ->get("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $status = $response->status();
         $data = json_decode($response->body, true);
         if (floor($status->code/100) != 2) {
             throw new \Gini\BPM\Exception($data['message']);
         }
+        return $data;
+    }
+
+    public function delete($path, array $data=[]) {
+        $response = $this->http
+            ->header('Content-Type', 'application/json')
+            ->delete("{$this->root}/engine/engine/{$this->engine}/$path", $data);
+        $status = $response->status();
+        $data = json_decode($response->body, true);
+
+        if (floor($status->code/100) != 2) {
+            throw new \Gini\BPM\Exception($data['message']);
+        }
+
+        return $data;
+    }
+
+    public function put($path, array $data=[]) {
+        $response = $this->http
+            ->header('Content-Type', 'application/json')
+            ->put("{$this->root}/engine/engine/{$this->engine}/$path", $data);
+        $status = $response->status();
+        $data = json_decode($response->body, true);
+        if (floor($status->code/100) != 2) {
+            throw new \Gini\BPM\Exception($data['message']);
+        }
+
         return $data;
     }
 
@@ -180,8 +207,188 @@ class Engine implements \Gini\BPM\Driver\Engine {
             foreach ((array) $rdata as $d) {
                 $tasks[$d['id']] = $this->task($d['id'], $d);
             }
-        }        
+        }
         return $tasks;
     }
 
+    private $_cachedGroups = [];
+    public function group($id, $data = [])
+    {
+        if (!isset($this->_cachedGroups[$id])) {
+            $this->_cachedGroups[$id] = new Group($this, $id, $data);
+        }
+        return $this->_cachedGroups[$id];
+    }
+
+    //Queries for groups using a list of parameters and retrieves the count.
+    public function searchGroups(array $criteria)
+    {
+        $groups = [];
+
+        if (!isset($criteria['type'])) return;
+        $query['type'] = $criteria['type'];
+
+        if (isset($criteria['name'])) {
+            $query['name'] = $criteria['name'];
+        }
+
+        if (isset($criteria['nameLike'])) {
+            $query['nameLike'] = '%'.$criteria['nameLike'].'%';
+        }
+
+        if (isset($criteria['member'])) {
+            $query['member'] = $criteria['member'];
+        }
+
+        try {
+            $rdata = $this->get("group/count", $query);
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
+        }
+
+        $token = uniqid();
+        $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token,
+            'total' => $rdata['count']
+        ];
+    }
+
+    //Queries for a list of groups using a list of parameters.
+    public function getGroups($token, $start=0, $perPage=25)
+    {
+        $groups = [];
+
+        $query = $this->_cachedQuery[$token];
+        if (is_array($query)) {
+            try {
+                $rdata = $this->get("group", $query);
+            } catch (\Gini\BPM\Exception $e) {
+                return ;
+            }
+
+            foreach ($rdata as $d) {
+                $groups[$d['id']] = $this->group($d['id'], $d);
+            }
+        }
+
+        return $groups;
+    }
+
+    //Creates a new group.
+    public function addGroup(array $criteria)
+    {
+        if (!$criteria['id'] || !$criteria['name'] || !$criteria['type']) return ;
+
+        try {
+            $rdata = $this->post("group/create", $criteria);
+            return empty($rdata) ? true : $rdata;
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
+        }
+    }
+
+    private $_cachedUsers = [];
+    public function user($id) {
+        if (!isset($this->_cachedUsers[$id])) {
+            $this->_cachedUsers[$id] = new User($this, $id);
+        }
+        return $this->_cachedUsers[$id];
+    }
+
+    //Query for users using a list of parameters and retrieves the count.
+    public function searchUsers($criteria = [])
+    {
+        $query = [];
+
+        if (isset($criteria['firstName'])) {
+            $query['firstName'] = $criteria['firstName'];
+        }
+
+        if (isset($criteria['firstNameLike'])) {
+            $query['firstNameLike'] = '%'.$criteria['firstNameLike'].'%';
+        }
+
+        if (isset($criteria['lastName'])) {
+            $query['lastName'] = $criteria['lastName'];
+        }
+
+        if (isset($criteria['lastNameLike'])) {
+            $query['lastNameLike'] = '%'.$criteria['lastNameLike'].'%';
+        }
+
+        if (isset($criteria['email'])) {
+            $query['email'] = $criteria['email'];
+        }
+
+        if (isset($criteria['emailLike'])) {
+            $query['emailLike'] = '%'.$criteria['emailLike'].'%';
+        }
+
+        if (isset($criteria['group'])) {
+            $query['memberOfGroup'] = $criteria['group'];
+        }
+
+        if (isset($criteria['sortBy']) && isset($criteria['sortOrder'])) {
+            $query['sortBy'] = $criteria['sortBy'];
+            $query['sortOrder'] = $criteria['sortOrder'];
+        }
+
+        try {
+            $rdata = $this->get("user/count", $query);
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
+        }
+
+        $token = uniqid();
+        $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token,
+            'total' => $rdata['count']
+        ];
+    }
+
+    //Query for a list of users using a list of parameters.
+    public function getUsers($token, $start=0, $perPage=25)
+    {
+        $users = [];
+        $query = $this->_cachedQuery[$token];
+        if (is_array($query)) {
+            try {
+                $users = $this->get("user?firstResult=$start&maxResults=$perPage", $query);
+            } catch (\Gini\BPM\Exception $e) {
+                return $users;
+            }
+
+            foreach ((array) $users as $d) {
+                $users[$d['id']] = $this->user($d['id']);
+            }
+        }
+
+        return $users;
+    }
+
+    //Create a new user.
+    public function addUser($criteria)
+    {
+        if (!$criteria['id'] ||
+            !$criteria['firstName'] ||
+            !$criteria['lastName'] ||
+            !$criteria['email'] ||
+            !$criteria['password']
+        ) return ;
+
+        $query['profile']['id'] = $criteria['id'];
+        $query['profile']['firstName'] = $criteria['firstName'];
+        $query['profile']['lastName'] = $criteria['lastName'];
+        $query['profile']['email'] = $criteria['email'];
+        $query['credentials']['password'] = $criteria['password'];
+
+        try {
+            $rdata = $this->post("user/create", $query);
+            return empty($rdata) ? true : $rdata;
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
+        }
+    }
 }
