@@ -9,7 +9,6 @@ class Group implements \Gini\BPM\Driver\Group
     {
         $this->camunda = $camunda;
         if ($id) {
-            $this->id = $id;
             $this->_fetchData();
         }
     }

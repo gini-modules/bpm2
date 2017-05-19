@@ -9,7 +9,6 @@ class User implements \Gini\BPM\Driver\User
     public function __construct($camunda, $id = '') {
         $this->camunda = $camunda;
         if ($id) {
-            $this->id = $id;
             $this->_fetchData();
         }
     }
