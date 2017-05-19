@@ -5,8 +5,7 @@ namespace Gini\BPM\Camunda;
 class Group implements \Gini\BPM\Driver\Group
 {
     private $camunda;
-    public function __construct($camunda, $id = '')
-    {
+    public function __construct($camunda, $id = '') {
         $this->camunda = $camunda;
         if ($id) {
             $this->id = $id;
@@ -17,50 +16,47 @@ class Group implements \Gini\BPM\Driver\Group
     private function _fetchData() {
         $id = $this->id;
         unset($this->id);
-        try {
-            $rdata = $this->camunda->get("group/$id");
-            if (isset($rdata['id'])) {
-                foreach ($rdata as $key => $value) {
-                    $this->$key = $value;
-                }
+        $rdata = $this->camunda->get("group/$id");
+        if (isset($rdata['id'])) {
+            foreach ($rdata as $key => $value) {
+                $this->$key = $value;
             }
-        } catch (\Gini\BPM\Exception $e) {
         }
     }
 
-    //Creates a new group.
-    public function create(array $criteria)
-    {
+    /**
+     * [create Creates a new group.]
+     * @param  array  $criteria [The array contains the following properties: id (String), name (String), type (String)]
+     * @return [bool]           [true/false]
+     */
+    public function create(array $criteria) {
         if (!$criteria['id'] || !$criteria['name'] || !$criteria['type']) return ;
 
         $query['id'] = $criteria['id'];
         $query['name'] = $criteria['name'];
         $query['type'] = $criteria['type'];
 
-        try {
-            $rdata = $this->camunda->post("group/create", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->post("group/create", $query);
+        return empty($result) ? true : false;
     }
 
-    //Deletes a group by id.
-    public function delete()
-    {
+    /**
+     * [delete Deletes a group by id.]
+     * @return [bool] [true/false]
+     */
+    public function delete() {
         if (!$id = $this->id) return ;
 
-        try {
-            $rdata = $this->camunda->delete("group/$id");
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->delete("group/$id");
+        return empty($result) ? true : false;
     }
 
-    //Updates a given group by id.
-    public function update(array $criteria)
-    {
+    /**
+     * [update Updates a given group by id.]
+     * @param  array  $criteria [The array contains the following properties: id (String), name (String), type (String)]
+     * @return [bool]           [true/false]
+     */
+    public function update(array $criteria) {
         $id = $this->id;
         if (!$id ||
             !$criteria['id'] ||
@@ -72,27 +68,20 @@ class Group implements \Gini\BPM\Driver\Group
         $query['name'] = $criteria['name'];
         $query['type'] = $criteria['type'];
 
-        try {
-            $rdata = $this->camunda->put("group/$id", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->put("group/$id", $query);
+        return empty($result) ? true : false;
     }
 
-    // Query for a list of users using a list of parameters.
-    public function getMembers()
-    {
+    /**
+     * [getMembers Query for a list of users using a list of parameters.]
+     * @return [array] [A JSON array of user objects.]
+     */
+    public function getMembers() {
         $members = [];
 
         $query['memberOfGroup'] = $this->id;
         if (is_array($query)) {
-            try {
-                $rdata = $this->camunda->get("user", $query);
-            } catch (\Gini\BPM\Excetion $e) {
-                return ;
-            }
-
+            $rdata = $this->camunda->get("user", $query);
             foreach ($rdata as $key => $d) {
                 $members[$d['id']] = new User($this->camunda, $d['id'], $d);
             }
@@ -101,31 +90,30 @@ class Group implements \Gini\BPM\Driver\Group
         return $members;
     }
 
-    //Adds a member to a group.
-    public function addMember($user_id)
-    {
+    /**
+     * [addMember Adds a member to a group.]
+     * @param [int] $user_id [The id of user to add to the group.]
+     * @return [bool] [true/false]
+     */
+    public function addMember($user_id) {
         $group_id = $this->id;
         if (!$group_id || !$user_id) return ;
 
-        try {
-            $rdata = $this->camunda->put("group/$group_id/members/$user_id");
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->put("group/$group_id/members/$user_id");
+        return empty($result) ? true : false;
     }
 
-    //Removes a member from a group.
-    public function removeMember($user_id)
-    {
+    /**
+     * [removeMember Removes a member from a group.]
+     * @param  [type] $user_id [The id of user to remove from the group.]
+     * @return [bool]          [true/false]
+     */
+    public function removeMember($user_id) {
         $group_id = $this->id;
         if (!$group_id || !$user_id) return ;
 
-        try {
-            $rdata = $this->camunda->delete("group/$group_id/members/$user_id");
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->delete("group/$group_id/members/$user_id");
+        return empty($result) ? true : false;
     }
 }
+

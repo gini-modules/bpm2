@@ -17,19 +17,20 @@ class User implements \Gini\BPM\Driver\User
     private function _fetchData() {
         $id = $this->id;
         unset($this->id);
-        try {
-            $rdata = $this->camunda->get("user/$id/profile");
-            if (isset($rdata['id'])) {
-                foreach ($rdata as $key => $value) {
-                    $this->$key = $value;
-                }
+        $rdata = $this->camunda->get("user/$id/profile");
+        if (isset($rdata['id'])) {
+            foreach ($rdata as $key => $value) {
+                $this->$key = $value;
             }
-        } catch (\Gini\BPM\Exception $e) {
         }
     }
 
-    public function create(array $criteria)
-    {
+    /**
+     * [create Create a new user.]
+     * @param  array  $criteria [The array contains the following properties: id (Int), firstName (String), lastName (String) , email (String) and password (String). ]
+     * @return [bool]           [true/false]
+     */
+    public function create(array $criteria) {
         if (!$criteria['id'] ||
             !$criteria['firstName'] ||
             !$criteria['lastName'] ||
@@ -43,30 +44,28 @@ class User implements \Gini\BPM\Driver\User
         $query['profile']['email'] = $criteria['email'];
         $query['credentials']['password'] = $criteria['password'];
 
-        try {
-            $rdata = $this->camunda->post("user/create", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->post("user/create", $query);
+        return empty($result) ? true : false;
     }
 
-    //Deletes a user by id.
-    public function delete()
-    {
+    /**
+     * [delete Deletes a user by id]
+     * @return [bool] [true/false]
+     */
+    public function delete() {
         $id = $this->id;
         if (!$id) return;
-        try {
-            $rdata = $this->camunda->delete("user/$id");
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+
+        $result = $this->camunda->delete("user/$id");
+        return empty($result) ? true : false;
     }
 
-    //Updates the profile information of an already existing user.
-    public function update(array $criteria)
-    {
+    /**
+     * [update Updates the profile information of an already existing user.]
+     * @param  array  $criteria [The array contains the following properties:id (Int), firstName (String), lastName (String), email (String)]
+     * @return [bool]           [true/false]
+     */
+    public function update(array $criteria) {
         $id = $this->id;
         if (!$id ||
             !$criteria['id'] ||
@@ -80,28 +79,25 @@ class User implements \Gini\BPM\Driver\User
         $query['lastName'] = $criteria['lastName'];
         $query['email'] = $criteria['email'];
 
-        try {
-            $rdata = $this->camunda->put("user/$id/profile", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->put("user/$id/profile", $query);
+        return empty($result) ? true : false;
     }
 
-    //Updates a user’s credentials (password).
-    public function changePassword($password, $newpassword)
-    {
+    /**
+     * [changePassword Updates a user’s credentials (password).]
+     * @param  [string] $password    [The password of the authenticated user who changes the password of the user ]
+     * @param  [string] $newpassword [The user's new password.]
+     * @return [bool]              [true/false]
+     */
+    public function changePassword($password, $newpassword) {
         $id = $this->id;
         if (!$id || !$password || !$newpassword) return;
 
         $query['password'] = $newpassword;
         $query['authenticatedUserPassword'] = $password;
 
-        try {
-            $rdata = $this->camunda->put("user/$id/credentials", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->put("user/$id/credentials", $query);
+        return empty($result) ? true : false;
     }
 }
+

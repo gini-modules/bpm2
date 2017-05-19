@@ -49,7 +49,6 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
     public function get($path, array $data=[]) {
         $response = $this->http
-            ->header('Content-Type', 'application/x-www-form-urlencoded')
             ->get("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $status = $response->status();
         $data = json_decode($response->body, true);
@@ -123,6 +122,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return (object) $cvars;
     }
 
+    /**
+     * [deploy Creates a deployment.]
+     * @param  [type] $name  [The name for the deployment to be created.]
+     * @param  [type] $files [resource]
+     * @return [array]        [A JSON object corresponding to the Deployment interface in the engine]
+     */
     public function deploy($name, $files) {
         $root = $this->config['options']['api_root'];
         $engine = $this->config['options']['engine'];
@@ -177,6 +182,11 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedQuery = [];
+    /**
+     * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
+     * @param  array  $criteria [parameters]
+     * @return [object]           [token, total]
+     */
     public function searchTasks(array $criteria) {
         $query = [];
         if (isset($criteria['instance'])) {
@@ -207,12 +217,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['history'] = $criteria['history'];
         }
 
-        try {
-            $rdata = $this->get($path, $query);
-        } catch (Exception $e) {
-            return ;
-        }
-
+        $rdata = $this->get($path, $query);
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
@@ -221,18 +226,22 @@ class Engine implements \Gini\BPM\Driver\Engine {
         ];
     }
 
+    /**
+     * [getTasks Queries for tasks that fulfill a given filter]
+     * @param  [type]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of task objects]
+     */
     public function getTasks($token, $start=0, $perPage=25) {
         $tasks = [];
         $query = $this->_cachedQuery[$token];
 
         $path = isset($query['history']) ? "history/task" : "task";
         if (is_array($query)) {
-            try {
-                $rdata = $this->get($path."?firstResult=$start&maxResults=$perPage", $query);
-                foreach ((array) $rdata as $d) {
-                    $tasks[$d['id']] = $this->task($d['id'], $d);
-                }
-            } catch (\Gini\BPM\Exception $e) {
+            $rdata = $this->get($path."?firstResult=$start&maxResults=$perPage", $query);
+            foreach ((array) $rdata as $d) {
+                $tasks[$d['id']] = $this->task($d['id'], $d);
             }
         }
         return $tasks;
@@ -246,7 +255,11 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedGroups[$id];
     }
 
-    //Queries for groups using a list of parameters and retrieves the count.
+    /**
+     * [searchGroups Queries for groups using a list of parameters and retrieves the count.]
+     * @param  array  $criteria [parameters]
+     * @return [object]           [token, total]
+     */
     public function searchGroups(array $criteria) {
         $groups = [];
 
@@ -265,12 +278,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['member'] = $criteria['member'];
         }
 
-        try {
-            $rdata = $this->get("group/count", $query);
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
-
+        $rdata = $this->get("group/count", $query);
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
@@ -279,18 +287,19 @@ class Engine implements \Gini\BPM\Driver\Engine {
         ];
     }
 
-    //Queries for a list of groups using a list of parameters.
+    /**
+     * [getGroups Queries for a list of groups using a list of parameters.]
+     * @param  [string]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of group objects.]
+     */
     public function getGroups($token, $start=0, $perPage=25) {
         $groups = [];
 
         $query = $this->_cachedQuery[$token];
         if (is_array($query)) {
-            try {
-                $rdata = $this->get("group", $query);
-            } catch (\Gini\BPM\Exception $e) {
-                return ;
-            }
-
+            $rdata = $this->get("group", $query);
             foreach ($rdata as $d) {
                 $groups[$d['id']] = $this->group($d['id'], $d);
             }
@@ -307,7 +316,11 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedUsers[$id];
     }
 
-    //Query for users using a list of parameters and retrieves the count.
+    /**
+     * [searchUsers Query for users using a list of parameters and retrieves the count.]
+     * @param  [array] $criteria [parameters]
+     * @return [object]           [token, total]
+     */
     public function searchUsers($criteria = []) {
         $query = [];
 
@@ -344,11 +357,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['sortOrder'] = $criteria['sortOrder'];
         }
 
-        try {
-            $rdata = $this->get("user/count", $query);
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $rdata = $this->get("user/count", $query);
 
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
@@ -358,22 +367,24 @@ class Engine implements \Gini\BPM\Driver\Engine {
         ];
     }
 
-    //Query for a list of users using a list of parameters.
+    /**
+     * [getUsers Query for a list of users.]
+     * @param  [type]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of user objects]
+     */
     public function getUsers($token, $start=0, $perPage=25) {
         $users = [];
         $query = $this->_cachedQuery[$token];
         if (is_array($query)) {
-            try {
-                $users = $this->get("user?firstResult=$start&maxResults=$perPage", $query);
-            } catch (\Gini\BPM\Exception $e) {
-                return $users;
-            }
+            $rdata = $this->get("user?firstResult=$start&maxResults=$perPage", $query);
 
-            foreach ((array) $users as $d) {
+            foreach ((array) $rdata as $d) {
                 $users[$d['id']] = $this->user($d['id']);
             }
         }
-
         return $users;
     }
 }
+
