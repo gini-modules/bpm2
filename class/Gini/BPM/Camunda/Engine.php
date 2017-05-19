@@ -179,11 +179,17 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private $_cachedQuery = [];
     public function searchTasks(array $criteria) {
         $query = [];
+        if (isset($criteria['instance'])) {
+            $query['processInstanceId'] = $criteria['instance'];
+        }
         if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
         if (isset($criteria['group'])) {
             $query['candidateGroup'] = $criteria['group'];
+        }
+        if (isset($criteria['candidateGroups'])) {
+            $query['candidateGroups'] = $criteria['candidateGroups'];
         }
         if (isset($criteria['candidate'])) {
             $query['candidateUser'] = $criteria['candidate'];
@@ -191,21 +197,42 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['assignee'])) {
             $query['assignee'] = $criteria['assignee'];
         }
+        if (isset($criteria['execution'])) {
+            $query['executionId'] = $criteria['execution'];
+        }
+
+        $path = "task/count";
+        if (isset($criteria['history'])) {
+            $path = "history/task/count";
+            $query['history'] = $criteria['history'];
+        }
+
+        try {
+            $rdata = $this->get($path, $query);
+        } catch (Exception $e) {
+            return ;
+        }
 
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
-            'token' => $token
+            'token' => $token,
+            'total' => $rdata['count']
         ];
     }
 
     public function getTasks($token, $start=0, $perPage=25) {
         $tasks = [];
         $query = $this->_cachedQuery[$token];
+
+        $path = isset($query['history']) ? "history/task" : "task";
         if (is_array($query)) {
-            $rdata = $this->post("task?firstResult=$start&maxResults=$perPage", $query);
-            foreach ((array) $rdata as $d) {
-                $tasks[$d['id']] = $this->task($d['id'], $d);
+            try {
+                $rdata = $this->get($path."?firstResult=$start&maxResults=$perPage", $query);
+                foreach ((array) $rdata as $d) {
+                    $tasks[$d['id']] = $this->task($d['id'], $d);
+                }
+            } catch (\Gini\BPM\Exception $e) {
             }
         }
         return $tasks;
@@ -273,8 +300,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedUsers = [];
-    public function user($id = '')
-    {
+    public function user($id = '') {
         if (!isset($this->_cachedUsers[$id])) {
             $this->_cachedUsers[$id] = new User($this, $id);
         }
@@ -350,5 +376,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
         return $users;
     }
-
 }
