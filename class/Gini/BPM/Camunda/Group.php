@@ -9,16 +9,20 @@ class Group implements \Gini\BPM\Driver\Group
     {
         $this->camunda = $camunda;
         if ($id) {
+            $this->id = $id;
             $this->_fetchData();
         }
     }
 
     private function _fetchData() {
         $id = $this->id;
+        unset($this->id);
         try {
             $rdata = $this->camunda->get("group/$id");
-            foreach ($rdata as $key => $value) {
-                $this->$key = $value;
+            if (isset($rdata['id'])) {
+                foreach ($rdata as $key => $value) {
+                    $this->$key = $value;
+                }
             }
         } catch (\Gini\BPM\Exception $e) {
         }

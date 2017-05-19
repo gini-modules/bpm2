@@ -9,16 +9,20 @@ class User implements \Gini\BPM\Driver\User
     public function __construct($camunda, $id = '') {
         $this->camunda = $camunda;
         if ($id) {
+            $this->id = $id;
             $this->_fetchData();
         }
     }
 
     private function _fetchData() {
         $id = $this->id;
+        unset($this->id);
         try {
             $rdata = $this->camunda->get("user/$id/profile");
-            foreach ($rdata as $key => $value) {
-                $this->$key = $value;
+            if (isset($rdata['id'])) {
+                foreach ($rdata as $key => $value) {
+                    $this->$key = $value;
+                }
             }
         } catch (\Gini\BPM\Exception $e) {
         }
