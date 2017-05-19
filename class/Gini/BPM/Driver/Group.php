@@ -7,6 +7,6 @@ interface Group {
     public function delete();
     public function update(array $vars);
     public function getMembers();
-    public function addMember(array $vars);
-    public function removeMember(array $vars);
+    public function addMember($user_id);
+    public function removeMember($user_id);
 }

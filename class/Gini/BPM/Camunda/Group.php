@@ -99,12 +99,10 @@ class Group implements \Gini\BPM\Driver\Group
     }
 
     //Adds a member to a group.
-    public function addMember(array $criteria = [])
+    public function addMember($user_id)
     {
         $group_id = $this->id;
-        $user_id = $criteria['user'];
-
-        if (!$group_id || !$group_id) return ;
+        if (!$group_id || !$user_id) return ;
 
         try {
             $rdata = $this->camunda->put("group/$group_id/members/$user_id");
@@ -115,11 +113,9 @@ class Group implements \Gini\BPM\Driver\Group
     }
 
     //Removes a member from a group.
-    public function removeMember(array $criteria = [])
+    public function removeMember($user_id)
     {
         $group_id = $this->id;
-        $user_id = $criteria['user'];
-
         if (!$group_id || !$user_id) return ;
 
         try {

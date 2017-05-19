@@ -25,14 +25,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $this->http->enableCookie()->header('Accept', 'application/json');
 
         $response = $this->http
-            ->header('Content-Type', 'application/json')
+            ->header('Content-Type', 'application/x-www-form-urlencoded')
             ->post("{$this->root}/admin/auth/user/default/login/cockpit", [
                 'username' => $options['username'],
                 'password' => $options['password'],
             ]);
-
         $rdata = json_decode($response->body, true);
-
         $this->userId = $rdata['userId'];
         $this->authorizedApps = $data['authorizedApps'];
     }
@@ -214,8 +212,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedGroups = [];
-    public function group($id = '')
-    {
+    public function group($id = '') {
         if (!isset($this->_cachedGroups[$id])) {
             $this->_cachedGroups[$id] = new Group($this, $id);
         }
@@ -223,8 +220,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     //Queries for groups using a list of parameters and retrieves the count.
-    public function searchGroups(array $criteria)
-    {
+    public function searchGroups(array $criteria) {
         $groups = [];
 
         if (!isset($criteria['type'])) return;
@@ -257,8 +253,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     //Queries for a list of groups using a list of parameters.
-    public function getGroups($token, $start=0, $perPage=25)
-    {
+    public function getGroups($token, $start=0, $perPage=25) {
         $groups = [];
 
         $query = $this->_cachedQuery[$token];
@@ -287,8 +282,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     //Query for users using a list of parameters and retrieves the count.
-    public function searchUsers($criteria = [])
-    {
+    public function searchUsers($criteria = []) {
         $query = [];
 
         if (isset($criteria['firstName'])) {
@@ -339,8 +333,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     //Query for a list of users using a list of parameters.
-    public function getUsers($token, $start=0, $perPage=25)
-    {
+    public function getUsers($token, $start=0, $perPage=25) {
         $users = [];
         $query = $this->_cachedQuery[$token];
         if (is_array($query)) {
@@ -357,4 +350,5 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
         return $users;
     }
+
 }
