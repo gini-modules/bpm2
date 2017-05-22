@@ -109,7 +109,7 @@ class Task implements \Gini\BPM\Driver\Task {
 
         $query['message'] = $message;
         $result = $this->camunda->post("task/$id/comment/create", $query);
-        return empty($result) ? false : true;
+        return empty($result) ? false : $result;
     }
 
     /**
