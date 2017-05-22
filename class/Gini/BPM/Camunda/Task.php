@@ -98,30 +98,31 @@ class Task implements \Gini\BPM\Driver\Task {
         }
     }
 
-    //Creates a comment for a task by id.
+    /**
+     * [addComment Creates a comment for a task by id.]
+     * @param [string] $message [The message of the task comment to create]
+     * @return [bool] [true/false]
+     */
     public function addComment($message) {
         $id = $this->id;
         if (!$id || !$message) return ;
 
         $query['message'] = $message;
-        try {
-            $rdata = $this->camunda->post("task/$id/comment/create", $query);
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->post("task/$id/comment/create", $query);
+        return $result;
     }
 
-    //Gets the comments for a task by id.
+    /**
+     * [getComments Gets the comments for a task by id.]
+     * @return [array] [A JSON object containing a list of task comments.]
+     */
     public function getComments() {
         $id = $this->id;
         if (!$id) return ;
 
-        try {
-            $rdata = $this->camunda->get("task/$id/comment");
-            return empty($rdata) ? true : $rdata;
-        } catch (\Gini\BPM\Exception $e) {
-            return ;
-        }
+        $result = $this->camunda->get("task/$id/comment");
+
+        return $result;
     }
 }
+
