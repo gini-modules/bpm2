@@ -32,7 +32,7 @@ class Task implements \Gini\BPM\Driver\Task {
         if ($name == 'id') {
             return $this->id;
         }
-        
+
         return $this->data[$name];
     }
 
@@ -79,7 +79,7 @@ class Task implements \Gini\BPM\Driver\Task {
     }
 
     public function submitForm(array $vars) {
-        
+
     }
 
     public function complete(array $vars=[]) {
@@ -95,6 +95,33 @@ class Task implements \Gini\BPM\Driver\Task {
             return true;
         } catch (\Gini\BPM\Exception $e) {
             return false;
+        }
+    }
+
+    //Creates a comment for a task by id.
+    public function addComment($message) {
+        $id = $this->id;
+        if (!$id || !$message) return ;
+
+        $query['message'] = $message;
+        try {
+            $rdata = $this->camunda->post("task/$id/comment/create", $query);
+            return empty($rdata) ? true : $rdata;
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
+        }
+    }
+
+    //Gets the comments for a task by id.
+    public function getComments() {
+        $id = $this->id;
+        if (!$id) return ;
+
+        try {
+            $rdata = $this->camunda->get("task/$id/comment");
+            return empty($rdata) ? true : $rdata;
+        } catch (\Gini\BPM\Exception $e) {
+            return ;
         }
     }
 }

@@ -49,13 +49,39 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
     public function get($path, array $data=[]) {
         $response = $this->http
-            ->header('Content-Type', 'application/json')
             ->get("{$this->root}/engine/engine/{$this->engine}/$path", $data);
         $status = $response->status();
         $data = json_decode($response->body, true);
         if (floor($status->code/100) != 2) {
             throw new \Gini\BPM\Exception($data['message']);
         }
+        return $data;
+    }
+
+    public function delete($path, array $data=[]) {
+        $response = $this->http
+            ->header('Content-Type', 'application/json')
+            ->delete("{$this->root}/engine/engine/{$this->engine}/$path", $data);
+        $status = $response->status();
+        $data = json_decode($response->body, true);
+
+        if (floor($status->code/100) != 2) {
+            throw new \Gini\BPM\Exception($data['message']);
+        }
+
+        return $data;
+    }
+
+    public function put($path, array $data=[]) {
+        $response = $this->http
+            ->header('Content-Type', 'application/json')
+            ->put("{$this->root}/engine/engine/{$this->engine}/$path", $data);
+        $status = $response->status();
+        $data = json_decode($response->body, true);
+        if (floor($status->code/100) != 2) {
+            throw new \Gini\BPM\Exception($data['message']);
+        }
+
         return $data;
     }
 
@@ -96,6 +122,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return (object) $cvars;
     }
 
+    /**
+     * [deploy Creates a deployment.]
+     * @param  [type] $name  [The name for the deployment to be created.]
+     * @param  [type] $files [resource]
+     * @return [array]        [A JSON object corresponding to the Deployment interface in the engine]
+     */
     public function deploy($name, $files) {
         $root = $this->config['options']['api_root'];
         $engine = $this->config['options']['engine'];
@@ -150,13 +182,24 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedQuery = [];
+    /**
+     * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
+     * @param  array  $criteria [parameters]
+     * @return [object]           [token, total]
+     */
     public function searchTasks(array $criteria) {
         $query = [];
+        if (isset($criteria['instance'])) {
+            $query['processInstanceId'] = $criteria['instance'];
+        }
         if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
         if (isset($criteria['group'])) {
             $query['candidateGroup'] = $criteria['group'];
+        }
+        if (isset($criteria['candidateGroups'])) {
+            $query['candidateGroups'] = $criteria['candidateGroups'];
         }
         if (isset($criteria['candidate'])) {
             $query['candidateUser'] = $criteria['candidate'];
@@ -164,24 +207,220 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['assignee'])) {
             $query['assignee'] = $criteria['assignee'];
         }
+        if (isset($criteria['execution'])) {
+            $query['executionId'] = $criteria['execution'];
+        }
+
+        $path = "task/count";
+        if (isset($criteria['history'])) {
+            $path = "history/task/count";
+            $query['history'] = $criteria['history'];
+        }
+
+        $rdata = $this->get($path, $query);
+        $token = uniqid();
+        $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token,
+            'total' => $rdata['count']
+        ];
+    }
+
+    /**
+     * [getTasks Queries for tasks that fulfill a given filter]
+     * @param  [type]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of task objects]
+     */
+    public function getTasks($token, $start=0, $perPage=25) {
+        $tasks = [];
+        $query = $this->_cachedQuery[$token];
+
+        $path = isset($query['history']) ? "history/task" : "task";
+        if (is_array($query)) {
+            $rdata = $this->get($path."?firstResult=$start&maxResults=$perPage", $query);
+            foreach ((array) $rdata as $d) {
+                $tasks[$d['id']] = $this->task($d['id'], $d);
+            }
+        }
+        return $tasks;
+    }
+
+    private function _makeQuery($name)
+    {
+        $pos = strpos($name, '=');
+        if (!$pos) {
+            if ($pos === 0) {
+                $val = substr($name, $pos+1);
+                return ['pattern' => $val];
+            } else {
+                return ['pattern' => $name];
+            }
+        }
+        else {
+            $val = substr($name, $pos+1);
+            $pos--;
+            $opt = $name[$pos].'=';
+
+            switch ($opt) {
+                case '^=': {
+                    $pattern = $val.'%';
+                }
+                break;
+
+                case '$=': {
+                    $pattern = '%'.$val;
+                }
+                break;
+
+                case '*=': {
+                    $pattern = '%'.$val.'%';
+                }
+                break;
+            }
+
+            return [
+                'like' => true,
+                'pattern' => $pattern
+            ];
+        }
+    }
+
+    private $_cachedGroups = [];
+    public function group($id = '') {
+        if (!isset($this->_cachedGroups[$id])) {
+            $this->_cachedGroups[$id] = new Group($this, $id);
+        }
+        return $this->_cachedGroups[$id];
+    }
+
+    /**
+     * [searchGroups Queries for groups using a list of parameters and retrieves the count.]
+     * @param  array  $criteria [parameters]
+     * @return [object]           [token, total]
+     */
+    public function searchGroups(array $criteria) {
+        $groups = [];
+
+        if (!isset($criteria['type'])) return;
+        $query['type'] = $criteria['type'];
+
+        if (isset($criteria['name'])) {
+            $result = $this->_makeQuery($criteria['name']);
+            if ($result['like']) {
+                $query['NameLike'] = $result['pattern'];
+            } else {
+                $query['Name'] = $result['pattern'];
+            }
+        }
+
+        if (isset($criteria['member'])) {
+            $query['member'] = $criteria['member'];
+        }
+
+        $rdata = $this->get("group/count", $query);
+        $token = uniqid();
+        $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token,
+            'total' => $rdata['count']
+        ];
+    }
+
+    /**
+     * [getGroups Queries for a list of groups using a list of parameters.]
+     * @param  [string]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of group objects.]
+     */
+    public function getGroups($token, $start=0, $perPage=25) {
+        $groups = [];
+
+        $query = $this->_cachedQuery[$token];
+        if (is_array($query)) {
+            $rdata = $this->get("group", $query);
+            foreach ($rdata as $d) {
+                $groups[$d['id']] = $this->group($d['id'], $d);
+            }
+        }
+
+        return $groups;
+    }
+
+    private $_cachedUsers = [];
+    public function user($id = '') {
+        if (!isset($this->_cachedUsers[$id])) {
+            $this->_cachedUsers[$id] = new User($this, $id);
+        }
+        return $this->_cachedUsers[$id];
+    }
+
+    /**
+     * [searchUsers Query for users using a list of parameters and retrieves the count.]
+     * @param  [array] $criteria [parameters]
+     * @return [object]           [token, total]
+     */
+    public function searchUsers($criteria = []) {
+        $query = [];
+
+        if (isset($criteria['name'])) {
+            $result = $this->_makeQuery($criteria['name']);
+            if ($result['like']) {
+                $query['firstNameLike'] = $result['pattern'];
+            } else {
+                $query['firstName'] = $result['pattern'];
+            }
+        }
+
+        if (isset($criteria['email'])) {
+            $result = $this->_makeQuery($criteria['email']);
+
+            if ($result['like']) {
+                $query['emailLike'] = $result['pattern'];
+            } else {
+                $query['email'] = $result['pattern'];
+            }
+        }
+
+        if (isset($criteria['group'])) {
+            $query['memberOfGroup'] = $criteria['group'];
+        }
+
+        if (isset($criteria['sortBy']) && isset($criteria['sortOrder'])) {
+            $query['sortBy'] = $criteria['sortBy'];
+            $query['sortOrder'] = $criteria['sortOrder'];
+        }
+
+        $rdata = $this->get("user/count", $query);
 
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
-            'token' => $token
+            'token' => $token,
+            'total' => $rdata['count']
         ];
     }
 
-    public function getTasks($token, $start=0, $perPage=25) {
-        $tasks = [];
+    /**
+     * [getUsers Query for a list of users.]
+     * @param  [type]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of user objects]
+     */
+    public function getUsers($token, $start=0, $perPage=25) {
+        $users = [];
         $query = $this->_cachedQuery[$token];
         if (is_array($query)) {
-            $rdata = $this->post("task?firstResult=$start&maxResults=$perPage", $query);
-            foreach ((array) $rdata as $d) {
-                $tasks[$d['id']] = $this->task($d['id'], $d);
-            }
-        }        
-        return $tasks;
-    }
+            $rdata = $this->get("user?firstResult=$start&maxResults=$perPage", $query);
 
+            foreach ((array) $rdata as $d) {
+                $users[$d['id']] = $this->user($d['id']);
+            }
+        }
+        return $users;
+    }
 }
+

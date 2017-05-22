@@ -6,4 +6,6 @@ interface Task {
     public function setAssignee($userId);
     public function submitForm(array $vars);
     public function complete(array $vars);
+    public function addComment($message);
+    public function getComments();
 }
