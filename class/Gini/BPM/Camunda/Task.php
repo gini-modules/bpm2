@@ -109,7 +109,7 @@ class Task implements \Gini\BPM\Driver\Task {
 
         $query['message'] = $message;
         $result = $this->camunda->post("task/$id/comment/create", $query);
-        return $result;
+        return empty($result) ? false : true;
     }
 
     /**
@@ -122,7 +122,21 @@ class Task implements \Gini\BPM\Driver\Task {
 
         $result = $this->camunda->get("task/$id/comment");
 
-        return $result;
+        return empty($result) ? false : $result;
+    }
+
+    /**
+     * [getVariables Retrieves all variables or a a variable from the task.]
+     * @return [array] [A JSON object of variables key-value pairs. ]
+     */
+    public function getVariables($name = '') {
+        $id = $this->id;
+        if (!$id) return ;
+
+        $path = $name ? "task/$id/variables/$name?deserializeValue=false" : "task/$id/variables";
+
+        $result = $this->camunda->get($path);
+        return empty($result) ? false : $result;
     }
 }
 
