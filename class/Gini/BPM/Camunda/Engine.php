@@ -267,11 +267,40 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $query['type'] = $criteria['type'];
 
         if (isset($criteria['name'])) {
-            $query['name'] = $criteria['name'];
-        }
+            $pattern = $criteria['name'];
+            $pos = strpos($pattern, '=');
 
-        if (isset($criteria['nameLike'])) {
-            $query['nameLike'] = '%'.$criteria['nameLike'].'%';
+            if (!$pos) {
+                if ($pos === 0) {
+                    $val = substr($pattern, $pos+1);
+                    $query['name'] = $val;
+                } else {
+                    $query['name'] = $pattern;
+                }
+            }
+            else {
+                $val = substr($pattern, $pos+1);
+                $pos--;
+                $opt = $pattern[$pos].'=';
+                $name = 'name';
+
+                switch ($opt) {
+                    case '^=': {
+                        $query[$name.'Like'] = $val.'%';
+                    }
+                    break;
+
+                    case '$=': {
+                        $query[$name.'Like'] = '%'.$val;
+                    }
+                    break;
+
+                    case '*=': {
+                        $query[$name.'Like'] = '%'.$val.'%';
+                    }
+                    break;
+                }
+            }
         }
 
         if (isset($criteria['member'])) {
@@ -324,28 +353,78 @@ class Engine implements \Gini\BPM\Driver\Engine {
     public function searchUsers($criteria = []) {
         $query = [];
 
-        if (isset($criteria['firstName'])) {
-            $query['firstName'] = $criteria['firstName'];
-        }
+        if (isset($criteria['name'])) {
+            $pattern = $criteria['name'];
+            $pos = strpos($pattern, '=');
 
-        if (isset($criteria['firstNameLike'])) {
-            $query['firstNameLike'] = '%'.$criteria['firstNameLike'].'%';
-        }
+            if (!$pos) {
+                if ($pos === 0) {
+                    $val = substr($pattern, $pos+1);
+                    $query['firstName'] = $val;
+                } else {
+                    $query['firstName'] = $pattern;
+                }
+            }
+            else {
+                $val = substr($pattern, $pos+1);
+                $pos--;
+                $opt = $pattern[$pos].'=';
+                $name = 'firstName';
 
-        if (isset($criteria['lastName'])) {
-            $query['lastName'] = $criteria['lastName'];
-        }
+                switch ($opt) {
+                    case '^=': {
+                        $query[$name.'Like'] = $val.'%';
+                    }
+                    break;
 
-        if (isset($criteria['lastNameLike'])) {
-            $query['lastNameLike'] = '%'.$criteria['lastNameLike'].'%';
+                    case '$=': {
+                        $query[$name.'Like'] = '%'.$val;
+                    }
+                    break;
+
+                    case '*=': {
+                        $query[$name.'Like'] = '%'.$val.'%';
+                    }
+                    break;
+                }
+            }
         }
 
         if (isset($criteria['email'])) {
-            $query['email'] = $criteria['email'];
-        }
+            $pattern = $criteria['email'];
+            $pos = strpos($pattern, '=');
 
-        if (isset($criteria['emailLike'])) {
-            $query['emailLike'] = '%'.$criteria['emailLike'].'%';
+            if (!$pos) {
+                if ($pos === 0) {
+                    $val = substr($pattern, $pos+1);
+                    $query['email'] = $val;
+                } else {
+                    $query['email'] = $pattern;
+                }
+            }
+            else {
+                $val = substr($pattern, $pos+1);
+                $pos--;
+                $opt = $pattern[$pos].'=';
+                $name = 'email';
+
+                switch ($opt) {
+                    case '^=': {
+                        $query[$name.'Like'] = $val.'%';
+                    }
+                    break;
+
+                    case '$=': {
+                        $query[$name.'Like'] = '%'.$val;
+                    }
+                    break;
+
+                    case '*=': {
+                        $query[$name.'Like'] = '%'.$val.'%';
+                    }
+                    break;
+                }
+            }
         }
 
         if (isset($criteria['group'])) {
@@ -387,4 +466,3 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
