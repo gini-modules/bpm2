@@ -247,6 +247,46 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $tasks;
     }
 
+    private function _makeQuery($name)
+    {
+        $pos = strpos($name, '=');
+        if (!$pos) {
+            if ($pos === 0) {
+                $val = substr($name, $pos+1);
+                return ['pattern' => $val];
+            } else {
+                return ['pattern' => $name];
+            }
+        }
+        else {
+            $val = substr($name, $pos+1);
+            $pos--;
+            $opt = $name[$pos].'=';
+
+            switch ($opt) {
+                case '^=': {
+                    $pattern = $val.'%';
+                }
+                break;
+
+                case '$=': {
+                    $pattern = '%'.$val;
+                }
+                break;
+
+                case '*=': {
+                    $pattern = '%'.$val.'%';
+                }
+                break;
+            }
+
+            return [
+                'like' => true,
+                'pattern' => $pattern
+            ];
+        }
+    }
+
     private $_cachedGroups = [];
     public function group($id = '') {
         if (!isset($this->_cachedGroups[$id])) {
@@ -267,39 +307,11 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $query['type'] = $criteria['type'];
 
         if (isset($criteria['name'])) {
-            $pattern = $criteria['name'];
-            $pos = strpos($pattern, '=');
-
-            if (!$pos) {
-                if ($pos === 0) {
-                    $val = substr($pattern, $pos+1);
-                    $query['name'] = $val;
-                } else {
-                    $query['name'] = $pattern;
-                }
-            }
-            else {
-                $val = substr($pattern, $pos+1);
-                $pos--;
-                $opt = $pattern[$pos].'=';
-                $name = 'name';
-
-                switch ($opt) {
-                    case '^=': {
-                        $query[$name.'Like'] = $val.'%';
-                    }
-                    break;
-
-                    case '$=': {
-                        $query[$name.'Like'] = '%'.$val;
-                    }
-                    break;
-
-                    case '*=': {
-                        $query[$name.'Like'] = '%'.$val.'%';
-                    }
-                    break;
-                }
+            $result = $this->_makeQuery($criteria['name']);
+            if ($result['like']) {
+                $query['NameLike'] = $result['pattern'];
+            } else {
+                $query['Name'] = $result['pattern'];
             }
         }
 
@@ -354,76 +366,21 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $query = [];
 
         if (isset($criteria['name'])) {
-            $pattern = $criteria['name'];
-            $pos = strpos($pattern, '=');
-
-            if (!$pos) {
-                if ($pos === 0) {
-                    $val = substr($pattern, $pos+1);
-                    $query['firstName'] = $val;
-                } else {
-                    $query['firstName'] = $pattern;
-                }
-            }
-            else {
-                $val = substr($pattern, $pos+1);
-                $pos--;
-                $opt = $pattern[$pos].'=';
-                $name = 'firstName';
-
-                switch ($opt) {
-                    case '^=': {
-                        $query[$name.'Like'] = $val.'%';
-                    }
-                    break;
-
-                    case '$=': {
-                        $query[$name.'Like'] = '%'.$val;
-                    }
-                    break;
-
-                    case '*=': {
-                        $query[$name.'Like'] = '%'.$val.'%';
-                    }
-                    break;
-                }
+            $result = $this->_makeQuery($criteria['name']);
+            if ($result['like']) {
+                $query['firstNameLike'] = $result['pattern'];
+            } else {
+                $query['firstName'] = $result['pattern'];
             }
         }
 
         if (isset($criteria['email'])) {
-            $pattern = $criteria['email'];
-            $pos = strpos($pattern, '=');
+            $result = $this->_makeQuery($criteria['email']);
 
-            if (!$pos) {
-                if ($pos === 0) {
-                    $val = substr($pattern, $pos+1);
-                    $query['email'] = $val;
-                } else {
-                    $query['email'] = $pattern;
-                }
-            }
-            else {
-                $val = substr($pattern, $pos+1);
-                $pos--;
-                $opt = $pattern[$pos].'=';
-                $name = 'email';
-
-                switch ($opt) {
-                    case '^=': {
-                        $query[$name.'Like'] = $val.'%';
-                    }
-                    break;
-
-                    case '$=': {
-                        $query[$name.'Like'] = '%'.$val;
-                    }
-                    break;
-
-                    case '*=': {
-                        $query[$name.'Like'] = '%'.$val.'%';
-                    }
-                    break;
-                }
+            if ($result['like']) {
+                $query['emailLike'] = $result['pattern'];
+            } else {
+                $query['email'] = $result['pattern'];
             }
         }
 
@@ -466,3 +423,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
+
