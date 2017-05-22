@@ -58,10 +58,10 @@ $o = $engine->searchGroups(['type' => 'order-review-process']);
 $groups = $engine->getGroups($o->token);
 
 //create a group
-$engin->group()->create(['id' => 'school-of-chemistry', 'name' => '化工学院', type => 'order-review-process']);
+$engine->group()->create(['id' => 'school-of-chemistry', 'name' => '化工学院', type => 'order-review-process']);
 
 //get group by ID
-$group = $engin->group('school-of-chemistry');
+$group = $engine->group('school-of-chemistry');
 
 //update group
 $group->update(['id' => 'school-of-chemistry', 'name' => '化工学院', type => 'order-review-process']);
@@ -70,13 +70,13 @@ $group->update(['id' => 'school-of-chemistry', 'name' => '化工学院', type =>
 $group->delete();
 
 //get group's members
-group->getMembers();
+$group->getMembers();
 
 //add a member to the group
-group->addMember('user_id');
+$group->addMember('user_id');
 
 //remove a member from a group
-group->removeMember('user_id');
+$group->removeMember('user_id');
 ```
 
 ###操作用户
@@ -90,7 +90,7 @@ $users = $engine->getUsers($o->token);
 $engine->user()->create(['id' => 1, 'firstName' => 'demo', 'lastName' => 'Genee', 'email' => 'demo@geneegroup.com', 'password' => 'password']);
 
 //get user by ID
-$user = $engin->user(1);
+$user = $engine->user(1);
 
 //update user
 $user->update(['id' => 1, 'firstName' => 'demo', 'lastName' => 'Genee', 'email' => 'demo@geneegroup.com']);
@@ -101,3 +101,4 @@ $user->delete();
 //change user's password
 $user->changePassword('password', 'newpassword');
 ```
+

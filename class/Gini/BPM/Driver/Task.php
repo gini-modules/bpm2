@@ -8,4 +8,5 @@ interface Task {
     public function complete(array $vars);
     public function addComment($message);
     public function getComments();
+    public function getVariables($name);
 }
