@@ -217,7 +217,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['history'] = $criteria['history'];
         }
 
-        $rdata = $this->get($path, $query);
+        $rdata = $this->post($path, $query);
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
@@ -236,10 +236,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
     public function getTasks($token, $start=0, $perPage=25) {
         $tasks = [];
         $query = $this->_cachedQuery[$token];
-
         $path = isset($query['history']) ? "history/task" : "task";
+
         if (is_array($query)) {
-            $rdata = $this->get($path."?firstResult=$start&maxResults=$perPage", $query);
+            $rdata = $this->post($path."?firstResult=$start&maxResults=$perPage", $query);
             foreach ((array) $rdata as $d) {
                 $tasks[$d['id']] = $this->task($d['id'], $d);
             }
