@@ -5,8 +5,6 @@ namespace Gini\BPM\Camunda;
 class Process implements \Gini\BPM\Driver\Process {
 
     private $camunda;
-    private $id;
-
     public function __construct($camunda, $id) {
         $this->camunda = $camunda;
         $this->id = $id;

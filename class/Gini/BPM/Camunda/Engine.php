@@ -210,6 +210,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['execution'])) {
             $query['executionId'] = $criteria['execution'];
         }
+        if (isset($criteria['includeAssignedTasks'])) {
+            $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
+        }
 
         $path = "task/count";
         if (isset($criteria['history'])) {
@@ -237,7 +240,6 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $tasks = [];
         $query = $this->_cachedQuery[$token];
         $path = isset($query['history']) ? "history/task" : "task";
-
         if (is_array($query)) {
             $rdata = $this->post($path."?firstResult=$start&maxResults=$perPage", $query);
             foreach ((array) $rdata as $d) {
@@ -423,4 +425,3 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
