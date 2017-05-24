@@ -181,6 +181,14 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedTasks[$id];
     }
 
+    private $_cachedExecutions = [];
+    public function execution($id, $data=null) {
+        if (!isset($this->_cachedExecutions[$id])) {
+            $this->_cachedExecutions[$id] = new Execution($this, $id, $data);
+        }
+        return $this->_cachedExecutions[$id];
+    }
+
     private $_cachedQuery = [];
     /**
      * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
@@ -210,6 +218,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['execution'])) {
             $query['executionId'] = $criteria['execution'];
         }
+        if (isset($criteria['includeAssignedTasks'])) {
+            $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
+        }
 
         $path = "task/count";
         if (isset($criteria['history'])) {
@@ -217,7 +228,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['history'] = $criteria['history'];
         }
 
-        $rdata = $this->get($path, $query);
+        $rdata = $this->post($path, $query);
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
         return (object) [
@@ -236,10 +247,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
     public function getTasks($token, $start=0, $perPage=25) {
         $tasks = [];
         $query = $this->_cachedQuery[$token];
-
         $path = isset($query['history']) ? "history/task" : "task";
         if (is_array($query)) {
-            $rdata = $this->get($path."?firstResult=$start&maxResults=$perPage", $query);
+            $rdata = $this->post($path."?firstResult=$start&maxResults=$perPage", $query);
             foreach ((array) $rdata as $d) {
                 $tasks[$d['id']] = $this->task($d['id'], $d);
             }
