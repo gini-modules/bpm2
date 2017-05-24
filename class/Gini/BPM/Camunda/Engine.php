@@ -182,9 +182,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedExecutions = [];
-    public function execution($id, $data=null) {
+    public function execution($id) {
         if (!isset($this->_cachedExecutions[$id])) {
-            $this->_cachedExecutions[$id] = new Execution($this, $id, $data);
+            $this->_cachedExecutions[$id] = new Execution($this, $id);
         }
         return $this->_cachedExecutions[$id];
     }
@@ -433,4 +433,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
+ 
