@@ -17,7 +17,7 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         if (!$this->data) {
             $id = $this->id;
             try {
-                $this->data = $this->camunda->get("process-instance/$id");
+                $this->data = $this->camunda->get("history/process-instance/$id");
             } catch (\Gini\BPM\Exception $e) {
                 $this->data = [];
             }
@@ -33,12 +33,15 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         if ($name == 'id') {
             return $this->id;
         }
-        
+
+        $this->_fetchInstance();
         return $this->data[$name];
     }
 
     public function getData() {
+        $this->_fetchInstance();
         return $this->data;
     }
 
 }
+

@@ -181,6 +181,14 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedTasks[$id];
     }
 
+    private $_cachedExecutions = [];
+    public function execution($id, $data=null) {
+        if (!isset($this->_cachedExecutions[$id])) {
+            $this->_cachedExecutions[$id] = new Execution($this, $id, $data);
+        }
+        return $this->_cachedExecutions[$id];
+    }
+
     private $_cachedQuery = [];
     /**
      * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
@@ -425,3 +433,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
+
