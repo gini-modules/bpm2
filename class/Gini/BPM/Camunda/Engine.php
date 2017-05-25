@@ -165,6 +165,72 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedProcessInstances[$id];
     }
 
+    private $_cachedQuery = [];
+    /**
+     * [searchInstances Queries for the number of process instances that fulfill given parameters]
+     * @param  array  $criteria [parameters]
+     * @return [array]           [token, total]
+     */
+    public function searchInstances(array $criteria) {
+        $query = [];
+        if ($criteria['processInstanceIds']) {
+            $query['processInstanceIds'] = $criteria['processInstanceIds'];
+        }
+        if ($criteria['businessKey']) {
+            $query['businessKey'] = $criteria['businessKey'];
+        }
+        if ($criteria['process']) {
+            $query['processDefinitionKey'] = $criteria['process'];
+        }
+        if ($criteria['deploymentId']) {
+            $query['deploymentId'] = $criteria['deploymentId'];
+        }
+        if ($criteria['superProcessInstance']) {
+            $query['superProcessInstance'] = $criteria['superProcessInstance'];
+        }
+        if ($criteria['subProcessInstance']) {
+            $query['subProcessInstance'] = $criteria['subProcessInstance'];
+        }
+        if ($criteria['active']) {
+            $query['active'] = $criteria['active'];
+        }
+
+        $path = "process-instance/count";
+        if (isset($criteria['history'])) {
+            $path = "history/process-instance/count";
+            $query['history'] = $criteria['history'];
+            $query['sorting'] = $criteria['sorting'];
+        }
+
+        $rdata = $this->post($path, $query);
+        $token = uniqid();
+        $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token,
+            'total' => $rdata['count']
+        ];
+    }
+
+    /**
+     * [getInstances Queries for process instances that fulfill given parameters through a JSON object]
+     * @param  [type]  $token   [token]
+     * @param  integer $start   [start]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of process instance objects.]
+     */
+    public function getInstances($token, $start=0, $perPage=25) {
+        $instances = [];
+        $query = $this->_cachedQuery[$token];
+        $path = isset($query['history']) ? "history/process-instance" : "process-instance";
+        if (is_array($query)) {
+            $rdata = $this->post($path."?firstResult=$start&maxResults=$perPage", $query);
+            foreach ((array) $rdata as $d) {
+                $instances[$d['id']] = $this->processInstance($d['id'], $d);
+            }
+        }
+        return $instances;
+    }
+
     private $_cachedDecisions = [];
     public function decision($id, $data=null) {
         if (!isset($this->_cachedDecisions[$id])) {
@@ -182,14 +248,13 @@ class Engine implements \Gini\BPM\Driver\Engine {
     }
 
     private $_cachedExecutions = [];
-    public function execution($id, $data=null) {
+    public function execution($id) {
         if (!isset($this->_cachedExecutions[$id])) {
-            $this->_cachedExecutions[$id] = new Execution($this, $id, $data);
+            $this->_cachedExecutions[$id] = new Execution($this, $id);
         }
         return $this->_cachedExecutions[$id];
     }
 
-    private $_cachedQuery = [];
     /**
      * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
      * @param  array  $criteria [parameters]
@@ -433,4 +498,5 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
+
 

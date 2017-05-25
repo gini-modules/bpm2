@@ -5,29 +5,29 @@ namespace Gini\BPM\Camunda;
 class Execution implements \Gini\BPM\Driver\Execution
 {
     private $camunda;
-    private $id;
-    private $data;
     function __construct($camunda, $id, $data = null) {
         $this->camunda = $camunda;
         $this->id = $id;
-        if ($data) {
-            $this->data = (array) $data;
-        }
+        $this->_fetchData();
     }
 
     private function _fetchData() {
-        if (!$this->data) {
-            $id = $this->id;
-            $this->data = $this->camunda->get("execution/$id");
+        $id = $this->id;
+        unset($this->id);
+        $rdata = $this->camunda->get("execution/$id");
+        if (isset($rdata['id'])) {
+            foreach ($rdata as $key => $value) {
+                $this->$key = $value;
+            }
         }
     }
 
-    public function __get($name) {
-        if ($name == 'id') {
-            return $this->id;
-        }
+    public function isEnd()
+    {
+        $id = $this->id;
+        $result = $this->camunda->get("execution/$id");
 
-        $this->_fetchData();
-        return $this->data[$name];
+        return $result['ended'] ? true : false;
     }
 }
+

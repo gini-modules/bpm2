@@ -8,9 +8,12 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
     private $id;
     private $data;
 
-    public function __construct($camunda, $id) {
+    public function __construct($camunda, $id, $data=null) {
         $this->camunda = $camunda;
         $this->id = $id;
+        if ($data) {
+            $this->data = (array) $data;
+        }
     }
 
     private function _fetchInstance() {
@@ -43,5 +46,16 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         return $this->data;
     }
 
+
+    public function isEnd() {
+        $id = $this->id;
+        $data = $this->getData();
+        $state = $data['state'];
+
+        if ($state == 'COMPLETED') {
+            return true;
+        }
+        return ;
+    }
 }
 
