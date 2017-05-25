@@ -498,5 +498,3 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
-
