@@ -5,7 +5,7 @@ namespace Gini\BPM\Camunda;
 class Execution implements \Gini\BPM\Driver\Execution
 {
     private $camunda;
-    function __construct($camunda, $id, $data = null) {
+    function __construct($camunda, $id) {
         $this->camunda = $camunda;
         $this->id = $id;
         $this->_fetchData();
@@ -30,4 +30,3 @@ class Execution implements \Gini\BPM\Driver\Execution
         return $result['ended'] ? true : false;
     }
 }
-
