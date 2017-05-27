@@ -171,7 +171,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
      * @param  array  $criteria [parameters]
      * @return [array]           [token, total]
      */
-    public function searchInstances(array $criteria) {
+    public function searchProcessInstances(array $criteria) {
         $query = [];
         if ($criteria['processInstanceIds']) {
             $query['processInstanceIds'] = $criteria['processInstanceIds'];
@@ -218,7 +218,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
      * @param  integer $perPage [perPage]
      * @return [array]           [A JSON array of process instance objects.]
      */
-    public function getInstances($token, $start=0, $perPage=25) {
+    public function getProcessInstances($token, $start=0, $perPage=25) {
         $instances = [];
         $query = $this->_cachedQuery[$token];
         $path = isset($query['history']) ? "history/process-instance" : "process-instance";

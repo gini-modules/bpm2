@@ -13,12 +13,10 @@ class Process implements \Gini\BPM\Driver\Process {
     public function start(array $vars) {
         $cvars = Engine::convertVariables($vars);
         $key = $this->id;
-        $tag = $vars['tag'];
         $rdata = $this->camunda->post("process-definition/key/$key/start", [
             'variables' => $cvars,
-            'businessKey' => $key.'_'.$tag,
+            'businessKey' => $key . '_'.uniqid(),
         ]);
         return new ProcessInstance($this->camunda, $rdata['id'], $rdata);
     }
 }
-

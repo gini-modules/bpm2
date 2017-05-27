@@ -21,12 +21,4 @@ class Execution implements \Gini\BPM\Driver\Execution
             }
         }
     }
-
-    public function isEnd()
-    {
-        $id = $this->id;
-        $result = $this->camunda->get("execution/$id");
-
-        return $result['ended'] ? true : false;
-    }
 }

@@ -45,17 +45,4 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         $this->_fetchInstance();
         return $this->data;
     }
-
-
-    public function isEnd() {
-        $id = $this->id;
-        $data = $this->getData();
-        $state = $data['state'];
-
-        if ($state == 'COMPLETED') {
-            return true;
-        }
-        return ;
-    }
 }
-
