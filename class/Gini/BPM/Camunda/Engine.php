@@ -231,6 +231,54 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $instances;
     }
 
+    /**
+     * [searchVariableInstances Queries for historic variable instances that fulfill the given parameters. ]
+     * @param  array  $criteria [criteria]
+     * @return [array]           [token, total]
+     */
+    public function searchVariableInstances(array $criteria) {
+        $query = [];
+        if ($criteria['variableName']) {
+            $query['variableName'] = $criteria['variableName'];
+        }
+        if ($criteria['processInstanceId']) {
+            $query['processInstanceId'] = $criteria['processInstanceId'];
+        }
+        if ($criteria['processInstanceIdIn']) {
+            $query['processInstanceIdIn'] = $criteria['processInstanceIdIn'];
+        }
+        if ($criteria['taskIdIn']) {
+            $query['taskIdIn'] = $criteria['taskIdIn'];
+        }
+        if ($criteria['sorting']) {
+            $query['sorting'] = $criteria['sorting'];
+        }
+
+        $rdata = $this->post("history/variable-instance/count", $query);
+        $token = uniqid();
+        $this->_cachedQuery[$token] = $query;
+        return (object) [
+            'token' => $token,
+            'total' => $rdata['count']
+        ];
+    }
+
+    /**
+     * [getVariableInstances Queries for historic variable instances that fulfill the given parameters]
+     * @param  [type]  $token   [token]
+     * @param  integer $token   [token]
+     * @param  integer $perPage [perPage]
+     * @return [array]           [A JSON array of historic variable instance objects.]
+     */
+    public function getVariableInstances($token, $start=0, $perPage=25) {
+        $variableInstances = [];
+        $query = $this->_cachedQuery[$token];
+        if (is_array($query)) {
+            $variableInstances = $this->post("history/variable-instance?deserializeValues=false&firstResult=$start&maxResults=$perPage", $query);
+        }
+        return $variableInstances;
+    }
+
     private $_cachedDecisions = [];
     public function decision($id, $data=null) {
         if (!isset($this->_cachedDecisions[$id])) {
@@ -498,3 +546,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
+
