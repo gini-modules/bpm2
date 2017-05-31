@@ -239,7 +239,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
     public function searchVariableInstances(array $criteria) {
         $query = [];
         if ($criteria['variableName']) {
-            $query['variableName'] = $criteria['variableName'];
+            $result = $this->_makeQuery($criteria['variableName']);
+            if ($result['like']) {
+                $query['variableNameLike'] = $result['pattern'];
+            } else {
+                $query['variableName'] = $result['pattern'];
+            }
         }
         if ($criteria['processInstanceId']) {
             $query['processInstanceId'] = $criteria['processInstanceId'];
