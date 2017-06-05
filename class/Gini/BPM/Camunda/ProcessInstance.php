@@ -47,6 +47,31 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
     }
 
     /**
+     * [setVariables Sets a variable of a given process instance by id.]
+     * @param array $criteria [criteria]
+     * @param type : boolean,interger,double,string,null,file,object,json,xml
+     */
+    public function setVariable(array $criteria) {
+        $id = $this->id;
+        if (!$id) return ;
+
+        if (!$criteria['variableName'] || !$criteria['value'] || !$criteria['type']) {
+            return ;
+        }
+
+        $query = [];
+        $varName = $criteria['variableName'];
+        $query['value'] = $criteria['value'];
+        $query['type'] = $criteria['type'];
+        if ($criteria['valueInfo']) {
+            $query['valueInfo'] = $criteria['valueInfo'];
+        }
+
+        $result = $this->camunda->put("process-instance/$id/variables/$varName", $query);
+        return empty($result) ? true : false;
+    }
+
+    /**
      * [getVariables Retrieves all variables or a a variable from the instance.]
      * @return [array] [A JSON object of variables key-value pairs. ]
      */
@@ -74,7 +99,7 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         if ($criteria['sorting']) {
             $query['sorting'] = $criteria['sorting'];
         }
-        
+
         $result = $this->camunda->post("history/variable-instance?deserializeValues=false&firstResult=$start&maxResults=$perPage", $query);
         return empty($result) ? false : $result;
     }
