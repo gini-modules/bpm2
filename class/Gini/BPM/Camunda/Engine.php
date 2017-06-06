@@ -268,29 +268,33 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
-        if (isset($criteria['group'])) {
-            $query['candidateGroup'] = $criteria['group'];
-        }
-        if (isset($criteria['candidateGroups'])) {
-            $query['candidateGroups'] = $criteria['candidateGroups'];
-        }
-        if (isset($criteria['candidate'])) {
-            $query['candidateUser'] = $criteria['candidate'];
-        }
         if (isset($criteria['assignee'])) {
             $query['assignee'] = $criteria['assignee'];
         }
         if (isset($criteria['execution'])) {
             $query['executionId'] = $criteria['execution'];
         }
-        if (isset($criteria['includeAssignedTasks'])) {
-            $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
-        }
 
-        $path = "task/count";
         if (isset($criteria['history'])) {
-            $path = "history/task/count";
             $query['history'] = $criteria['history'];
+            if (isset($criteria['group'])) {
+                $query['taskHadCandidateGroup'] = $criteria['group'];
+            }
+            $path = "history/task/count";
+        } else {
+            if (isset($criteria['group'])) {
+                $query['candidateGroup'] = $criteria['group'];
+            }
+            if (isset($criteria['candidateGroups'])) {
+                $query['candidateGroups'] = $criteria['candidateGroups'];
+            }
+            if (isset($criteria['candidate'])) {
+                $query['candidateUser'] = $criteria['candidate'];
+            }
+            if (isset($criteria['includeAssignedTasks'])) {
+                $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
+            }
+            $path = "task/count";
         }
 
         $rdata = $this->post($path, $query);
@@ -498,3 +502,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
+
