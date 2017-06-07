@@ -274,7 +274,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['execution'])) {
             $query['executionId'] = $criteria['execution'];
         }
-
+        if (isset($criteria['sorting'])) {
+            $query['sorting'] = $criteria['sorting'];
+        }
         if (isset($criteria['history'])) {
             $query['history'] = $criteria['history'];
             if (isset($criteria['group'])) {
