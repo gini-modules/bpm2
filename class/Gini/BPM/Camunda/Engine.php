@@ -173,33 +173,39 @@ class Engine implements \Gini\BPM\Driver\Engine {
      */
     public function searchProcessInstances(array $criteria) {
         $query = [];
-        if ($criteria['processInstanceIds']) {
-            $query['processInstanceIds'] = $criteria['processInstanceIds'];
-        }
-        if ($criteria['businessKey']) {
-            $query['businessKey'] = $criteria['businessKey'];
-        }
-        if ($criteria['process']) {
+        if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
-        if ($criteria['deploymentId']) {
-            $query['deploymentId'] = $criteria['deploymentId'];
-        }
-        if ($criteria['superProcessInstance']) {
-            $query['superProcessInstance'] = $criteria['superProcessInstance'];
-        }
-        if ($criteria['subProcessInstance']) {
-            $query['subProcessInstance'] = $criteria['subProcessInstance'];
-        }
-        if ($criteria['active']) {
-            $query['active'] = $criteria['active'];
+        if (isset($criteria['sorting'])) {
+            $query['sorting'] = $criteria['sorting'];
         }
 
-        $path = "process-instance/count";
         if (isset($criteria['history'])) {
-            $path = "history/process-instance/count";
+            if ($criteria['processInstanceIds']) {
+                $query['processInstanceIds'] = $criteria['processInstanceIds'];
+            }
             $query['history'] = $criteria['history'];
-            $query['sorting'] = $criteria['sorting'];
+            $path = "history/process-instance/count";
+        } else {
+            if ($criteria['processInstanceIds']) {
+                $query['processInstanceIds'] = $criteria['processInstanceIds'];
+            }
+            if ($criteria['businessKey']) {
+                $query['businessKey'] = $criteria['businessKey'];
+            }
+            if ($criteria['deploymentId']) {
+                $query['deploymentId'] = $criteria['deploymentId'];
+            }
+            if ($criteria['superProcessInstance']) {
+                $query['superProcessInstance'] = $criteria['superProcessInstance'];
+            }
+            if ($criteria['subProcessInstance']) {
+                $query['subProcessInstance'] = $criteria['subProcessInstance'];
+            }
+            if ($criteria['active']) {
+                $query['active'] = $criteria['active'];
+            }
+            $path = "process-instance/count";
         }
 
         $rdata = $this->post($path, $query);
@@ -504,4 +510,3 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
