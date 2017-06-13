@@ -176,35 +176,30 @@ class Engine implements \Gini\BPM\Driver\Engine {
         if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
-        if (isset($criteria['sorting'])) {
-            $query['sorting'] = $criteria['sorting'];
+
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $sorting[] = [
+                    'sortBy' => $sortBy,
+                    'sortOrder' => $sortOrder
+                ];
+            }
+            $query['sorting'] = $sorting;
+        }
+
+        if (isset($criteria['processInstance'])) {
+            if (is_array($criteria['processInstance'])) {
+                $query['processInstanceIds'] = $criteria['processInstance'];
+            } else {
+                $query['processInstanceId'] = $criteria['processInstance'];
+            }
         }
 
         if (isset($criteria['history'])) {
-            if ($criteria['processInstanceIds']) {
-                $query['processInstanceIds'] = $criteria['processInstanceIds'];
-            }
             $query['history'] = $criteria['history'];
             $path = "history/process-instance/count";
         } else {
-            if ($criteria['processInstanceIds']) {
-                $query['processInstanceIds'] = $criteria['processInstanceIds'];
-            }
-            if ($criteria['businessKey']) {
-                $query['businessKey'] = $criteria['businessKey'];
-            }
-            if ($criteria['deploymentId']) {
-                $query['deploymentId'] = $criteria['deploymentId'];
-            }
-            if ($criteria['superProcessInstance']) {
-                $query['superProcessInstance'] = $criteria['superProcessInstance'];
-            }
-            if ($criteria['subProcessInstance']) {
-                $query['subProcessInstance'] = $criteria['subProcessInstance'];
-            }
-            if ($criteria['active']) {
-                $query['active'] = $criteria['active'];
-            }
             $path = "process-instance/count";
         }
 
@@ -268,37 +263,57 @@ class Engine implements \Gini\BPM\Driver\Engine {
      */
     public function searchTasks(array $criteria) {
         $query = [];
-        if (isset($criteria['instance'])) {
-            $query['processInstanceId'] = $criteria['instance'];
+        if (isset($criteria['processInstance'])) {
+            $query['processInstanceId'] = $criteria['processInstance'];
         }
+
         if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
+
         if (isset($criteria['assignee'])) {
             $query['assignee'] = $criteria['assignee'];
         }
+
         if (isset($criteria['execution'])) {
             $query['executionId'] = $criteria['execution'];
         }
-        if (isset($criteria['sorting'])) {
-            $query['sorting'] = $criteria['sorting'];
+
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $sorting[] = [
+                    'sortBy' => $sortBy,
+                    'sortOrder' => $sortOrder
+                ];
+            }
+            $query['sorting'] = $sorting;
         }
-        if (isset($criteria['history'])) {
-            $query['history'] = $criteria['history'];
-            if (isset($criteria['group'])) {
-                $query['taskHadCandidateGroup'] = $criteria['group'];
+
+        if (isset($criteria['candidateGroup'])) {
+            if (isset($criteria['history'])) {
+                $query['taskHadCandidateGroup'] = $criteria['candidateGroup'];
+            } else {
+                if (is_array($criteria['candidateGroup'])) {
+                    $query['candidateGroups'] = $criteria['candidateGroup'];
+                } else {
+                    $query['candidateGroup'] = $criteria['candidateGroup'];
+                }
             }
-            $path = "history/task/count";
-        } else {
-            if (isset($criteria['group'])) {
-                $query['candidateGroup'] = $criteria['group'];
-            }
-            if (isset($criteria['candidateGroups'])) {
-                $query['candidateGroups'] = $criteria['candidateGroups'];
-            }
-            if (isset($criteria['candidate'])) {
+        }
+
+        if (isset($criteria['candidate'])) {
+            if (isset($criteria['history'])) {
+                $query['taskHadCandidateUser'] = $criteria['candidate'];
+            } else {
                 $query['candidateUser'] = $criteria['candidate'];
             }
+        }
+
+        if (isset($criteria['history'])) {
+            $query['history'] = $criteria['history'];
+            $path = "history/task/count";
+        } else {
             if (isset($criteria['includeAssignedTasks'])) {
                 $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
             }
@@ -406,6 +421,14 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['member'] = $criteria['member'];
         }
 
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $query['sortBy'] = $sortBy;
+                $query['sortOrder'] = $sortOrder;
+            }
+        }
+
         $rdata = $this->get("group/count", $query);
         $token = uniqid();
         $this->_cachedQuery[$token] = $query;
@@ -475,9 +498,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['memberOfGroup'] = $criteria['group'];
         }
 
-        if (isset($criteria['sortBy']) && isset($criteria['sortOrder'])) {
-            $query['sortBy'] = $criteria['sortBy'];
-            $query['sortOrder'] = $criteria['sortOrder'];
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $query['sortBy'] = $sortBy;
+                $query['sortOrder'] = $sortOrder;
+            }
         }
 
         $rdata = $this->get("user/count", $query);
