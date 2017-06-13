@@ -203,7 +203,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
          * type: array
          */
         if (isset($criteria['processInstance'])) {
-            $query['processInstanceIds'] = $criteria['processInstance'];
+            $query['processInstanceIds'] = array_map('trim',  is_array($criteria['processInstance']) ? $criteria['processInstance'] : explode($criteria['processInstance'], ','));
         }
 
         /**
@@ -332,9 +332,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
          */
         if (isset($criteria['candidateGroup'])) {
             if (isset($criteria['history'])) {
-                $query['taskHadCandidateGroup'] = current($criteria['candidateGroup']);
+                $query['taskHadCandidateGroup'] = is_array($criteria['candidateGroup']) ? current($criteria['candidateGroup']) : $criteria['candidateGroup'];
             } else {
-                $query['candidateGroups'] = $criteria['candidateGroup'];
+                $query['candidateGroups'] = array_map('trim',  is_array($criteria['candidateGroup']) ? $criteria['candidateGroup'] : explode($criteria['candidateGroup'], ','));
             }
         }
 
