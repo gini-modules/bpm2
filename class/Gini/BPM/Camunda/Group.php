@@ -115,5 +115,20 @@ class Group implements \Gini\BPM\Driver\Group
         $result = $this->camunda->delete("group/$group_id/members/$user_id");
         return empty($result) ? true : false;
     }
+ 
+    /**
+     * [hasMember if the user is in this group]
+     * @param  [string]  $user_id [user_id]
+     * @return bool      [true | false]
+     */
+    public function hasMember($user_id) {
+        $group_id = $this->id;
+        if (!$group_id || !$user_id) return ;
+
+        $query['memberOfGroup'] = $group_id;
+        $query['id'] = $user_id;
+        $result = $this->camunda->get("user", $query);
+        return empty($result) ? false : true;
+    }
 }
 

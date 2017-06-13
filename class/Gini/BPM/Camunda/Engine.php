@@ -173,33 +173,48 @@ class Engine implements \Gini\BPM\Driver\Engine {
      */
     public function searchProcessInstances(array $criteria) {
         $query = [];
-        if ($criteria['processInstanceIds']) {
-            $query['processInstanceIds'] = $criteria['processInstanceIds'];
-        }
-        if ($criteria['businessKey']) {
-            $query['businessKey'] = $criteria['businessKey'];
-        }
-        if ($criteria['process']) {
+
+        /**
+         * process:进程唯一标识 key
+		 * type: string
+         */
+        if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
-        if ($criteria['deploymentId']) {
-            $query['deploymentId'] = $criteria['deploymentId'];
-        }
-        if ($criteria['superProcessInstance']) {
-            $query['superProcessInstance'] = $criteria['superProcessInstance'];
-        }
-        if ($criteria['subProcessInstance']) {
-            $query['subProcessInstance'] = $criteria['subProcessInstance'];
-        }
-        if ($criteria['active']) {
-            $query['active'] = $criteria['active'];
+
+        /**
+         * sortBy: 排序规则
+         * type: array
+         * format:['title1' => 'asc', 'title2' => 'desc']
+         */
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $sorting[] = [
+                    'sortBy' => $sortBy,
+                    'sortOrder' => $sortOrder
+                ];
+            }
+            $query['sorting'] = $sorting;
         }
 
-        $path = "process-instance/count";
+        /**
+         * processInstance: 包含 单个实例 ID 或 多个实例 ID 的数组
+         * type: array
+         */
+        if (isset($criteria['processInstance'])) {
+            $query['processInstanceIds'] = $this->_normalizeToArray($criteria['processInstance']);
+        }
+
+        /**
+         * history: 是否检索历史记录, true 检索历史数据， false 检索活动中的数据
+         * type: bool
+         */
         if (isset($criteria['history'])) {
-            $path = "history/process-instance/count";
             $query['history'] = $criteria['history'];
-            $query['sorting'] = $criteria['sorting'];
+            $path = "history/process-instance/count";
+        } else {
+            $path = "process-instance/count";
         }
 
         $rdata = $this->post($path, $query);
@@ -255,6 +270,16 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedExecutions[$id];
     }
 
+    private function _normalizeToArray($criteria)
+    {
+        return array_map('trim',  is_array($criteria) ? $criteria : explode($criteria, ','));
+    }
+
+    private function _normalizeToSingle($criteria)
+    {
+        return is_array($criteria) ? $criteria[0] : $criteria;
+    }
+
     /**
      * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
      * @param  array  $criteria [parameters]
@@ -262,35 +287,95 @@ class Engine implements \Gini\BPM\Driver\Engine {
      */
     public function searchTasks(array $criteria) {
         $query = [];
-        if (isset($criteria['instance'])) {
-            $query['processInstanceId'] = $criteria['instance'];
+
+        /**
+         * processInstance: 实例唯一 ID
+         * type: string
+         */
+        if (isset($criteria['processInstance'])) {
+            $query['processInstanceId'] = $criteria['processInstance'];
         }
+
+        /**
+         * process: 进程唯一标识 key
+         * type: string
+         */
         if (isset($criteria['process'])) {
             $query['processDefinitionKey'] = $criteria['process'];
         }
-        if (isset($criteria['group'])) {
-            $query['candidateGroup'] = $criteria['group'];
-        }
-        if (isset($criteria['candidateGroups'])) {
-            $query['candidateGroups'] = $criteria['candidateGroups'];
-        }
-        if (isset($criteria['candidate'])) {
-            $query['candidateUser'] = $criteria['candidate'];
-        }
+
+        /**
+         * assignee: 任务所分配的 用户 或者 组
+         * type: string
+         */
         if (isset($criteria['assignee'])) {
             $query['assignee'] = $criteria['assignee'];
         }
+
+        /**
+         * execution: 任务所在的执行流程 ID
+         * type: string
+         */
         if (isset($criteria['execution'])) {
             $query['executionId'] = $criteria['execution'];
         }
-        if (isset($criteria['includeAssignedTasks'])) {
-            $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
+
+        /**
+         * sortBy: 排序规则
+         * type: array
+         * format:['title1' => 'asc', 'title2' => 'desc']
+         */
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $sorting[] = [
+                    'sortBy' => $sortBy,
+                    'sortOrder' => $sortOrder
+                ];
+            }
+            $query['sorting'] = $sorting;
         }
 
-        $path = "task/count";
+        /**
+         * candidateGroup: 任务所属单个组或多个组
+         * type: array
+         */
+        if (isset($criteria['candidateGroup'])) {
+            if (isset($criteria['history'])) {
+                $query['taskHadCandidateGroup'] = $this->_normalizeToSingle($criteria['candidateGroup']);
+            } else {
+                $query['candidateGroups'] = $this->_normalizeToArray($criteria['candidateGroup']);
+            }
+        }
+
+        /**
+         * candidate: 任务所属的用户
+         * type: string
+         */
+        if (isset($criteria['candidate'])) {
+            if (isset($criteria['history'])) {
+                $query['taskHadCandidateUser'] = $this->_normalizeToSingle($criteria['candidate']);
+            } else {
+                $query['candidateUser'] = $this->_normalizeToSingle($criteria['candidate']);
+            }
+        }
+
+        /**
+         * history: 是否检索历史记录, true 检索历史数据， false 检索活动中的数据
+         * type: bool
+         */
         if (isset($criteria['history'])) {
-            $path = "history/task/count";
             $query['history'] = $criteria['history'];
+            $path = "history/task/count";
+        } else {
+            /**
+             * includeAssignedTasks:是否包含被分配的任务,只有活动中的任务支持该参数
+             * type: bool
+             */
+            if (isset($criteria['includeAssignedTasks'])) {
+                $query['includeAssignedTasks'] = $criteria['includeAssignedTasks'];
+            }
+            $path = "task/count";
         }
 
         $rdata = $this->post($path, $query);
@@ -379,8 +464,17 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $groups = [];
 
         if (!isset($criteria['type'])) return;
+
+        /**
+         * type: 组所属的类型
+         * type: string
+         */
         $query['type'] = $criteria['type'];
 
+        /**
+         * name: 组名称，可以是模糊查询
+         * type: string
+         */
         if (isset($criteria['name'])) {
             $result = $this->_makeQuery($criteria['name']);
             if ($result['like']) {
@@ -390,8 +484,25 @@ class Engine implements \Gini\BPM\Driver\Engine {
             }
         }
 
+        /**
+         * member: 用户ID，返回包含该用户的组
+         * type: string
+         */
         if (isset($criteria['member'])) {
             $query['member'] = $criteria['member'];
+        }
+
+        /**
+         * sortBy: 排序规则,包含一个元素的数组
+         * type: array
+         * format: ['title' => 'desc']
+         */
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $query['sortBy'] = $sortBy;
+                $query['sortOrder'] = $sortOrder;
+            }
         }
 
         $rdata = $this->get("group/count", $query);
@@ -440,6 +551,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
     public function searchUsers($criteria = []) {
         $query = [];
 
+        /**
+         * name: 用户名称，可以是模糊查询
+         * type: string
+         */
         if (isset($criteria['name'])) {
             $result = $this->_makeQuery($criteria['name']);
             if ($result['like']) {
@@ -449,6 +564,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
             }
         }
 
+        /**
+         * email: 用户邮箱， 可以模糊查询
+         * type: string
+         */
         if (isset($criteria['email'])) {
             $result = $this->_makeQuery($criteria['email']);
 
@@ -459,13 +578,25 @@ class Engine implements \Gini\BPM\Driver\Engine {
             }
         }
 
+        /**
+         * group: 用户所属的组 ID
+         * type: string
+         */
         if (isset($criteria['group'])) {
             $query['memberOfGroup'] = $criteria['group'];
         }
 
-        if (isset($criteria['sortBy']) && isset($criteria['sortOrder'])) {
-            $query['sortBy'] = $criteria['sortBy'];
-            $query['sortOrder'] = $criteria['sortOrder'];
+        /**
+         * sortBy: 排序规则,包含一个元素的数组
+         * type: array
+         * format: ['title' => 'desc']
+         */
+        if (isset($criteria['sortBy'])) {
+            $sorting = [];
+            foreach ($criteria['sortBy'] as $sortBy => $sortOrder) {
+                $query['sortBy'] = $sortBy;
+                $query['sortOrder'] = $sortOrder;
+            }
         }
 
         $rdata = $this->get("user/count", $query);
@@ -498,3 +629,4 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
+
