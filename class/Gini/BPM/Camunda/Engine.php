@@ -203,7 +203,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
          * type: array
          */
         if (isset($criteria['processInstance'])) {
-            $query['processInstanceIds'] = array_map('trim',  is_array($criteria['processInstance']) ? $criteria['processInstance'] : explode($criteria['processInstance'], ','));
+            $query['processInstanceIds'] = $this->_normalizeToArray($criteria['processInstance']);
         }
 
         /**
@@ -270,6 +270,16 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $this->_cachedExecutions[$id];
     }
 
+    private function _normalizeToArray($criteria)
+    {
+        return array_map('trim',  is_array($criteria) ? $criteria : explode($criteria, ','));
+    }
+
+    private function _normalizeToSingle($criteria)
+    {
+        return is_array($criteria) ? $criteria[0] : $criteria;
+    }
+
     /**
      * [searchTasks Retrieves the number of tasks that fulfill a provided filter.]
      * @param  array  $criteria [parameters]
@@ -332,9 +342,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
          */
         if (isset($criteria['candidateGroup'])) {
             if (isset($criteria['history'])) {
-                $query['taskHadCandidateGroup'] = is_array($criteria['candidateGroup']) ? current($criteria['candidateGroup']) : $criteria['candidateGroup'];
+                $query['taskHadCandidateGroup'] = $this->_normalizeToSingle($criteria['candidateGroup']);
             } else {
-                $query['candidateGroups'] = array_map('trim',  is_array($criteria['candidateGroup']) ? $criteria['candidateGroup'] : explode($criteria['candidateGroup'], ','));
+                $query['candidateGroups'] = $this->_normalizeToArray($criteria['candidateGroup']);
             }
         }
 
@@ -344,9 +354,9 @@ class Engine implements \Gini\BPM\Driver\Engine {
          */
         if (isset($criteria['candidate'])) {
             if (isset($criteria['history'])) {
-                $query['taskHadCandidateUser'] = $criteria['candidate'];
+                $query['taskHadCandidateUser'] = $this->_normalizeToSingle($criteria['candidate']);
             } else {
-                $query['candidateUser'] = $criteria['candidate'];
+                $query['candidateUser'] = $this->_normalizeToSingle($criteria['candidate']);
             }
         }
 
