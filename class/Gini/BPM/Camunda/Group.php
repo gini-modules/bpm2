@@ -118,7 +118,7 @@ class Group implements \Gini\BPM\Driver\Group
  
     /**
      * [hasMember if the user is in this group]
-     * @param  [stirng]  $user_id [user_id]
+     * @param  [string]  $user_id [user_id]
      * @return bool      [true | false]
      */
     public function hasMember($user_id) {
