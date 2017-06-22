@@ -2,7 +2,7 @@
     "id": "bpm2",
     "name": "Gini BPM 工作流抽象层",
     "description": "Gini BPM 工作流抽象层",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "dependencies": {
         "gini": "*"
     }
