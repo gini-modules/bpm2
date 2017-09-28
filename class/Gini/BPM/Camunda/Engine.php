@@ -198,6 +198,17 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['sorting'] = $sorting;
         }
 
+        if (isset($criteria['variables'])) {
+            $variables = [];
+            foreach ($criteria['variables'] as $variable) {
+                $variables[] = [
+                    'name' => $variable['name'],
+                    'operator' => $variable['operator'],
+                    'value' => $variable['value']
+                ];
+            }
+            $query['variables'] = $variables;
+        }
         /**
          * processInstance: 包含 单个实例 ID 或 多个实例 ID 的数组
          * type: array
@@ -629,4 +640,3 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
