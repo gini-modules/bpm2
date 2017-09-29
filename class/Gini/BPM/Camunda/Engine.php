@@ -200,11 +200,12 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
         if (isset($criteria['variables'])) {
             $variables = [];
-            foreach ($criteria['variables'] as $variable) {
+            foreach ($criteria['variables'] as $name => $exp) {
+                list($operator, $value) = $this->_makeVariable($exp);
                 $variables[] = [
-                    'name' => $variable['name'],
-                    'operator' => $variable['operator'],
-                    'value' => $variable['value']
+                    'name' => $name,
+                    'operator' => $operator,
+                    'value' => $value
                 ];
             }
             $query['variables'] = $variables;
@@ -289,6 +290,47 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private function _normalizeToSingle($criteria)
     {
         return is_array($criteria) ? $criteria[0] : $criteria;
+    }
+
+    private function _makeVariable($expression = '')
+    {
+
+        // gteq
+        if (strstr($expression, '>=')) {
+            $val = substr($expression, 2);
+            return ['gteq', $val];
+        }
+
+
+        if (strstr($expression, '>')) {
+            $val = substr($expression, 1);
+            return ['gt', $val];
+        }
+
+        if (strstr($expression, '<=')) {
+            $val = substr($expression, 2);
+            return ['lteq', $val];
+        }
+
+        if (strstr($expression, '<')) {
+            $val = substr($expression, 1);
+            return ['lt', $val];
+        }
+
+        if (strstr($expression, '*=')) {
+            $val = substr($expression, 2);
+            return ['like', $val];
+        }
+
+        if (strstr($expression, '!=')) {
+            $val = substr($expression, 2);
+            return ['neq', $val];
+        }
+
+        if (strstr($expression, '=')) {
+            $val = substr($expression, 1);
+            return ['eq', $val];
+        }
     }
 
     /**
