@@ -198,6 +198,18 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['sorting'] = $sorting;
         }
 
+        if (isset($criteria['variables'])) {
+            $variables = [];
+            foreach ($criteria['variables'] as $name => $exp) {
+                list($operator, $value) = $this->_makeVariable($exp);
+                $variables[] = [
+                    'name' => $name,
+                    'operator' => $operator,
+                    'value' => $value
+                ];
+            }
+            $query['variables'] = $variables;
+        }
         /**
          * processInstance: 包含 单个实例 ID 或 多个实例 ID 的数组
          * type: array
@@ -278,6 +290,40 @@ class Engine implements \Gini\BPM\Driver\Engine {
     private function _normalizeToSingle($criteria)
     {
         return is_array($criteria) ? $criteria[0] : $criteria;
+    }
+
+    private function _makeVariable($expression = '')
+    {
+        $pattern = '/^\s*(?:(\^=|\$=|\*=|!=|<=|>=|<|>|=)\s*)?(.+)\s*$/';
+        preg_match($pattern, trim($expression), $matches);
+
+        $opt = $matches[1];
+        $val = $matches[2];
+        switch ($opt) {
+            case '>=':
+                return ['gteq', $val];
+                break;
+            case '>':
+                return ['gt', $val];
+                break;
+            case '<=':
+                return ['lteq', $val];
+                break;
+            case '<':
+                return ['lt', $val];
+                break;
+            case '=':
+                return ['eq', $val];
+                break;
+            case '!=':
+                return ['neq', $val];
+                break;
+            case '*=':
+                return ['like', $val];
+                break;
+        }
+
+        return false;
     }
 
     /**
@@ -629,4 +675,3 @@ class Engine implements \Gini\BPM\Driver\Engine {
         return $users;
     }
 }
-
