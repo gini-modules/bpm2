@@ -294,42 +294,33 @@ class Engine implements \Gini\BPM\Driver\Engine {
 
     private function _makeVariable($expression = '')
     {
+        $pattern = '/^\s*(?:(\^=|\$=|\*=|!=|<=|>=|<|>|=)\s*)?(.+)\s*$/';
+        preg_match($pattern, trim($expression), $matches);
 
-        // gteq
-        if (strstr($expression, '>=')) {
-            $val = substr($expression, 2);
-            return ['gteq', $val];
-        }
-
-
-        if (strstr($expression, '>')) {
-            $val = substr($expression, 1);
-            return ['gt', $val];
-        }
-
-        if (strstr($expression, '<=')) {
-            $val = substr($expression, 2);
-            return ['lteq', $val];
-        }
-
-        if (strstr($expression, '<')) {
-            $val = substr($expression, 1);
-            return ['lt', $val];
-        }
-
-        if (strstr($expression, '*=')) {
-            $val = substr($expression, 2);
-            return ['like', $val];
-        }
-
-        if (strstr($expression, '!=')) {
-            $val = substr($expression, 2);
-            return ['neq', $val];
-        }
-
-        if (strstr($expression, '=')) {
-            $val = substr($expression, 1);
-            return ['eq', $val];
+        $opt = $matches[1];
+        $val = $matches[2];
+        switch ($opt) {
+            case '>=':
+                return ['gteq', $val];
+                break;
+            case '>':
+                return ['gt', $val];
+                break;
+            case '<=':
+                return ['lteq', $val];
+                break;
+            case '<':
+                return ['lt', $val];
+                break;
+            case '=':
+                return ['eq', $val];
+                break;
+            case '!=':
+                return ['neq', $val];
+                break;
+            case '*=':
+                return ['like', $val];
+                break;
         }
     }
 
