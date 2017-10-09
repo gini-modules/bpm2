@@ -322,6 +322,8 @@ class Engine implements \Gini\BPM\Driver\Engine {
                 return ['like', $val];
                 break;
         }
+
+        return false;
     }
 
     /**
