@@ -46,6 +46,11 @@ class ProcessInstance implements \Gini\BPM\Driver\ProcessInstance {
         return $this->data;
     }
 
+    public function delete() {
+        $this->camunda->delete("process-instance/$this->id");
+        return true;
+    }
+
     /**
      * [setVariables Sets a variable of a given process instance by id.]
      * @param array $criteria [criteria]

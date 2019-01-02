@@ -4,6 +4,6 @@
     "description": "Gini BPM 工作流抽象层",
     "version": "0.1.4",
     "dependencies": {
-        "gini": "*"
+        "gini": ">=1.11.0"
     }
 }
