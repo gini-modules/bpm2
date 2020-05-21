@@ -32,7 +32,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
             ]);
         $rdata = json_decode($response->body, true);
         $this->userId = $rdata['userId'];
-        $this->authorizedApps = $data['authorizedApps'];
+        $this->authorizedApps = $rdata['authorizedApps'];
     }
 
     public function post($path, array $data=[]) {
