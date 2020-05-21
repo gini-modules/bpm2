@@ -32,7 +32,103 @@ class Engine implements \Gini\BPM\Driver\Engine {
             ]);
         $rdata = json_decode($response->body, true);
         $this->userId = $rdata['userId'];
-        $this->authorizedApps = $data['authorizedApps'];
+        $this->authorizedApps = $rdata['authorizedApps'];
+    }
+
+    protected function normalizeExtension($extension)
+    {
+        return $extension[0] == '.' ? $extension : '.' . $extension;
+    }
+
+    /**
+     * Generate form.
+     *
+     * @param string $boundary boundary string
+     * @param array  $fields   normal fields
+     * @param array  $files    the files need to be posted
+     *
+     * @return string The request payload
+     */
+    protected function buildMultiPartRequest($boundary, $fields, $files)
+    {
+        /**
+         * $fields = ['field-name' => 'field value']
+         * $files = ['filename' => ['content' => 'XXX', 'extension' => 'XXX'], [ ... ]];
+         */
+        $delimiter = '------' . $boundary;
+        $data = '';
+
+        foreach ($fields as $name => $content) {
+            if(!$name || !$content) {
+                throw new \Gini\BPM\Exception("wrong formats of fields");
+            }
+
+            $data .= '--' . $delimiter . "\r\n"
+                . 'Content-Disposition: form-data; name="' . $name . "\"\r\n\r\n"
+                . $content . "\r\n";
+        }
+
+        foreach ($files as $fileName => $file) {
+            if (
+                !$fileName ||
+                !$file['extension'] ||
+                !$file['content']
+            ) {
+                throw new \Gini\BPM\Exception("wrong formats of files");
+            }
+
+            $data .= '--' . $delimiter . "\r\n"
+                . 'Content-Disposition: form-data; name="' . $fileName . '"; filename="'
+                . $fileName . $this->normalizeExtension($file['extension']) . '"' . "\r\n\r\n"
+                . $file['content'] . "\r\n";
+        }
+        $data .= '--' . $delimiter . "--\r\n";
+
+        return $data;
+    }
+
+    /**
+     * $files: ['filename' =>['content' => 'XXX', 'extension' => 'XXX']]
+     *
+     * @param string $deploymentName 唯一名称
+     * @param string $deploymentSource
+     * @param array $files 处理后的数据
+     *
+     * @return mixed
+     */
+    public function deployFormattedData($deploymentName, $files, $deploymentSource = 'app', $overriddenFields = [])
+    {
+        // 这里未检查 files 的格式 - 在 buildMultiPartRequest 方法中对 files 进行遍历的时候会进行检查
+        $id            = uniqid();
+        $delimiter     = '------' . $id;
+        $root          = $this->config['options']['api_root'];
+        $engine        = $this->config['options']['engine'];
+
+        $fieldData = [
+            'deployment-name'            => $deploymentName,
+            'enable-duplicate-filtering' => 'true',
+            'deploy-changed-only'        => 'true',
+            'deployment-source'          => $deploymentSource,
+        ];
+
+        // 如果需要加额外的 field，直接覆盖掉默认配置，注意不是 merge
+        if( $overriddenFields) {
+            $fieldData = (array)$overriddenFields;
+        }
+
+        $data = $this->buildMultiPartRequest($id, $fieldData, $files);
+
+        $response = $this->http
+            ->header('Content-Type', 'multipart/form-data; boundary=' . $delimiter)
+            ->post("$root/engine/engine/$engine/deployment/create", $data);
+        $status = $response->status();
+        $data   = json_decode($response->body, true);
+
+        if (floor($status->code / 100) != 2) {
+            throw new \Gini\BPM\Exception($status->code . ': ' . $data['message'], $status->code);
+        }
+
+        return $data;
     }
 
     public function post($path, array $data=[]) {
