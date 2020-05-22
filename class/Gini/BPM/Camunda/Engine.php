@@ -183,7 +183,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $engine = $this->config['options']['engine'];
 
         if(empty($files)) {
-            throw new \Gini\BPM\Exception("empty files", 400);
+            throw new \Gini\BPM\Exception("empty files");
         }
 
         $data = [];
