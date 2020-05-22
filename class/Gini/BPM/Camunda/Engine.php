@@ -35,11 +35,6 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $this->authorizedApps = $rdata['authorizedApps'];
     }
 
-    protected function normalizeExtension($extension)
-    {
-        return $extension[0] == '.' ? $extension : '.' . $extension;
-    }
-
     /**
      * Generate form.
      *
@@ -49,11 +44,11 @@ class Engine implements \Gini\BPM\Driver\Engine {
      *
      * @return string The request payload
      */
-    protected function buildMultiPartRequest($boundary, $fields, $files)
+    private function buildMultiPartRequest($boundary, $fields, $files)
     {
         /**
          * $fields = ['field-name' => 'field value']
-         * $files = ['filename' => ['content' => 'XXX', 'extension' => 'XXX'], [ ... ]];
+         * $files = [['content' => 'XXX', 'extension' => 'XXX', 'filename' => 'XXXX'], [ ... ]];
          */
         $delimiter = '------' . $boundary;
         $data = '';
@@ -68,65 +63,24 @@ class Engine implements \Gini\BPM\Driver\Engine {
                 . $content . "\r\n";
         }
 
-        foreach ($files as $fileName => $file) {
+        foreach ($files as $file) {
             if (
-                !$fileName ||
+                !$file['filename'] ||
                 !$file['extension'] ||
                 !$file['content']
             ) {
                 throw new \Gini\BPM\Exception("wrong formats of files");
             }
 
+            // normalize
+            $extension = $file['extension'][0] == '.' ? $file['extension'] : '.' . $file['extension'];
+
             $data .= '--' . $delimiter . "\r\n"
-                . 'Content-Disposition: form-data; name="' . $fileName . '"; filename="'
-                . $fileName . $this->normalizeExtension($file['extension']) . '"' . "\r\n\r\n"
+                . 'Content-Disposition: form-data; name="' . $file['filename'] . '"; filename="'
+                . $file['filename'] . $extension . '"' . "\r\n\r\n"
                 . $file['content'] . "\r\n";
         }
         $data .= '--' . $delimiter . "--\r\n";
-
-        return $data;
-    }
-
-    /**
-     * $files: ['filename' =>['content' => 'XXX', 'extension' => 'XXX']]
-     *
-     * @param string $deploymentName 唯一名称
-     * @param string $deploymentSource
-     * @param array $files 处理后的数据
-     *
-     * @return mixed
-     */
-    public function deployFormattedData($deploymentName, $files, $deploymentSource = 'app', $overriddenFields = [])
-    {
-        // 这里未检查 files 的格式 - 在 buildMultiPartRequest 方法中对 files 进行遍历的时候会进行检查
-        $id            = uniqid();
-        $delimiter     = '------' . $id;
-        $root          = $this->config['options']['api_root'];
-        $engine        = $this->config['options']['engine'];
-
-        $fieldData = [
-            'deployment-name'            => $deploymentName,
-            'enable-duplicate-filtering' => 'true',
-            'deploy-changed-only'        => 'true',
-            'deployment-source'          => $deploymentSource,
-        ];
-
-        // 如果需要加额外的 field，直接覆盖掉默认配置，注意不是 merge
-        if( $overriddenFields) {
-            $fieldData = (array)$overriddenFields;
-        }
-
-        $data = $this->buildMultiPartRequest($id, $fieldData, $files);
-
-        $response = $this->http
-            ->header('Content-Type', 'multipart/form-data; boundary=' . $delimiter)
-            ->post("$root/engine/engine/$engine/deployment/create", $data);
-        $status = $response->status();
-        $data   = json_decode($response->body, true);
-
-        if (floor($status->code / 100) != 2) {
-            throw new \Gini\BPM\Exception($status->code . ': ' . $data['message'], $status->code);
-        }
 
         return $data;
     }
@@ -221,28 +175,52 @@ class Engine implements \Gini\BPM\Driver\Engine {
     /**
      * [deploy Creates a deployment.]
      * @param  [type] $name  [The name for the deployment to be created.]
-     * @param  [type] $files [resource]
+     * @param  [type] $files [resource] OR [['content' => 'XXX', 'extension' => 'XXX', 'filename' => 'XXX']]
      * @return [array]        [A JSON object corresponding to the Deployment interface in the engine]
      */
     public function deploy($name, $files) {
         $root = $this->config['options']['api_root'];
         $engine = $this->config['options']['engine'];
 
-        $data = [];
-        foreach ($files as $file) {
-            if (!file_exists($file)) continue;
-            $data[basename($file)] = new \CURLFile($file);
+        if(empty($files)) {
+            throw new \Gini\BPM\Exception("Empty files");
         }
 
+        $data = [];
         $data['deployment-name'] = $name;
         $data['enable-duplicate-filtering'] = 'true';
         $data['deploy-changed-only'] = 'true';
 
-        $response = $this->http
-            ->header('Content-Type', 'multipart/form-data')
-            ->post("$root/engine/engine/$engine/deployment/create", $data);
-        $rdata = json_decode($response->body, true);
-        return $rdata;
+        // 我们只用判断数组的第一个元素是字符串（文件名）还是数组（包含 xml 内容的数组）
+        if(is_array($files[0]) && $files[0]['content']) {
+            // 说明传递的是处理后的包含 xml 内容的数组，我们需要做额外的处理
+            // $files: [['content' => 'XXX', 'extension' => 'XXX', 'filename' => 'XXX']]
+            $id            = uniqid();
+            $delimiter     = '------' . $id;
+            $fieldData = $data;
+            $multiPartData = $this->buildMultiPartRequest($id, $fieldData, $files);
+            $response = $this->http
+                ->header('Content-Type', 'multipart/form-data; boundary=' . $delimiter)
+                ->post("$root/engine/engine/$engine/deployment/create", $multiPartData);
+        } else { // 文件
+            foreach ($files as $file) {
+                if (!file_exists($file)) continue;
+                $data[basename($file)] = new \CURLFile($file);
+            }
+
+            $response = $this->http
+                ->header('Content-Type', 'multipart/form-data')
+                ->post("$root/engine/engine/$engine/deployment/create", $data);
+        }
+
+        $status = $response->status();
+        $data   = json_decode($response->body, true);
+
+        if (floor($status->code / 100) != 2) {
+            throw new \Gini\BPM\Exception($status->code . ': ' . $data['message'], $status->code);
+        }
+
+        return $data;
     }
 
     private $_cachedProcesses = [];
