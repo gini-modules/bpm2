@@ -35,6 +35,56 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $this->authorizedApps = $rdata['authorizedApps'];
     }
 
+    /**
+     * Generate form.
+     *
+     * @param string $boundary boundary string
+     * @param array  $fields   normal fields
+     * @param array  $files    the files need to be posted
+     *
+     * @return string The request payload
+     */
+    private function buildMultiPartRequest($boundary, $fields, $files)
+    {
+        /**
+         * $fields = ['field-name' => 'field value']
+         * $files = [['content' => 'XXX', 'extension' => 'XXX', 'filename' => 'XXXX'], [ ... ]];
+         */
+        $delimiter = '------' . $boundary;
+        $data = '';
+
+        foreach ($fields as $name => $content) {
+            if(!$name || !$content) {
+                throw new \Gini\BPM\Exception("wrong formats of fields");
+            }
+
+            $data .= '--' . $delimiter . "\r\n"
+                . 'Content-Disposition: form-data; name="' . $name . "\"\r\n\r\n"
+                . $content . "\r\n";
+        }
+
+        foreach ($files as $file) {
+            if (
+                !$file['filename'] ||
+                !$file['extension'] ||
+                !$file['content']
+            ) {
+                throw new \Gini\BPM\Exception("wrong formats of files");
+            }
+
+            // normalize
+            $extension = $file['extension'][0] == '.' ? $file['extension'] : '.' . $file['extension'];
+
+            $data .= '--' . $delimiter . "\r\n"
+                . 'Content-Disposition: form-data; name="' . $file['filename'] . '"; filename="'
+                . $file['filename'] . $extension . '"' . "\r\n\r\n"
+                . $file['content'] . "\r\n";
+        }
+        $data .= '--' . $delimiter . "--\r\n";
+
+        return $data;
+    }
+
     public function post($path, array $data=[]) {
         $response = $this->http
             ->header('Content-Type', 'application/json')
@@ -125,28 +175,52 @@ class Engine implements \Gini\BPM\Driver\Engine {
     /**
      * [deploy Creates a deployment.]
      * @param  [type] $name  [The name for the deployment to be created.]
-     * @param  [type] $files [resource]
+     * @param  [type] $files [resource] OR [['content' => 'XXX', 'extension' => 'XXX', 'filename' => 'XXX']]
      * @return [array]        [A JSON object corresponding to the Deployment interface in the engine]
      */
     public function deploy($name, $files) {
         $root = $this->config['options']['api_root'];
         $engine = $this->config['options']['engine'];
 
-        $data = [];
-        foreach ($files as $file) {
-            if (!file_exists($file)) continue;
-            $data[basename($file)] = new \CURLFile($file);
+        if(empty($files)) {
+            throw new \Gini\BPM\Exception("empty files");
         }
 
+        $data = [];
         $data['deployment-name'] = $name;
         $data['enable-duplicate-filtering'] = 'true';
         $data['deploy-changed-only'] = 'true';
 
-        $response = $this->http
-            ->header('Content-Type', 'multipart/form-data')
-            ->post("$root/engine/engine/$engine/deployment/create", $data);
-        $rdata = json_decode($response->body, true);
-        return $rdata;
+        // 我们只用判断数组的第一个元素是字符串（文件名）还是数组（包含 xml 内容的数组）
+        if(is_array($files[0]) && $files[0]['content']) {
+            // 说明传递的是处理后的包含 xml 内容的数组，我们需要做额外的处理
+            // $files: [['content' => 'XXX', 'extension' => 'XXX', 'filename' => 'XXX']]
+            $id            = uniqid();
+            $delimiter     = '------' . $id;
+            $fieldData = $data;
+            $multiPartData = $this->buildMultiPartRequest($id, $fieldData, $files);
+            $response = $this->http
+                ->header('Content-Type', 'multipart/form-data; boundary=' . $delimiter)
+                ->post("$root/engine/engine/$engine/deployment/create", $multiPartData);
+        } else { // 文件
+            foreach ($files as $file) {
+                if (!file_exists($file)) continue;
+                $data[basename($file)] = new \CURLFile($file);
+            }
+
+            $response = $this->http
+                ->header('Content-Type', 'multipart/form-data')
+                ->post("$root/engine/engine/$engine/deployment/create", $data);
+        }
+
+        $status = $response->status();
+        $data   = json_decode($response->body, true);
+
+        if (floor($status->code / 100) != 2) {
+            throw new \Gini\BPM\Exception($status->code . ': ' . $data['message']);
+        }
+
+        return $data;
     }
 
     private $_cachedProcesses = [];
