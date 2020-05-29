@@ -217,7 +217,7 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $data   = json_decode($response->body, true);
 
         if (floor($status->code / 100) != 2) {
-            throw new \Gini\BPM\Exception($status->code . ': ' . $data['message'], $status->code);
+            throw new \Gini\BPM\Exception($status->code . ': ' . $data['message']);
         }
 
         return $data;
