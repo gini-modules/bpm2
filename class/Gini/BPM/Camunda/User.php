@@ -99,5 +99,19 @@ class User implements \Gini\BPM\Driver\User
         $result = $this->camunda->put("user/$id/credentials", $query);
         return empty($result) ? true : false;
     }
+
+    public function getGroups()
+    {
+        $groups = [];
+        $query['userId'] = $this->id;
+        $rdata = $this->camunda->get("identity/groups", $query);
+        foreach ((array)$rdata['groups'] as $key => $d) {
+            $groups[] = [
+                'id' =>  $d['id'],
+                'name' => $d['name'],
+            ];
+        }
+        return $groups;
+    }
 }
 
