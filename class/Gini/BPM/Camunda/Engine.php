@@ -256,6 +256,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
             $query['processDefinitionKey'] = $criteria['process'];
         }
 
+        if (isset($criteria['processInstanceBusinessKeyLike'])) {
+            $query['processInstanceBusinessKeyLike'] = $criteria['processInstanceBusinessKeyLike'];
+        }
+
         /**
          * sortBy: 排序规则
          * type: array
