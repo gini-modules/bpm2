@@ -22,9 +22,10 @@ class Engine implements \Gini\BPM\Driver\Engine {
         $this->engine = $options['engine'];
 
         $this->http = new \Gini\HTTP();
-        $this->http->enableCookie()->header('Accept', 'application/json');
+        $this->http->header('Accept', 'application/json');
 
         $response = $this->http
+	    ->enableCookie()
             ->header('Content-Type', 'application/x-www-form-urlencoded')
             ->post("{$this->root}/admin/auth/user/default/login/cockpit", [
                 'username' => $options['username'],
