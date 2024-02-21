@@ -4,7 +4,6 @@ trait ProcessTrait
 {
     public function createProcess($engine, $key, $data)
     {
-        var_dump($data);
         return $engine->post('process-definition/key/'.$key.'/submit-form', $data);
     }
 

@@ -26,17 +26,17 @@ class TestEngine extends TestCamundaBase
 
     public function testCanGet(){
         $this->testStart(__FUNCTION__);
-        $user = $this->getEngineImpl()->get('user/cuiyue/profile');
+        $user = $this->getEngineImpl()->get('user/test/profile');
         if(!$user['id']){
             error_log('user not found');
         }
-        $this->assert($user['id'] && $user['id'] == 'cuiyue');
+        $this->assert($user['id'] && $user['id'] == 'test');
     }
     public function testCanPut(){
         $this->testStart(__FUNCTION__);
-        $this->updateUser($this->getEngineImpl(),'cuiyue',["id"=> "cuiyue","email"=> "yue.cui@geneegroup.com"]);
+        $this->updateUser($this->getEngineImpl(),'test',["id"=> "test","email"=> "test@test.com"]);
         $userNext = $this->getUser($this->getEngineImpl(),'cuiyue');
-        $this->assert($userNext['email'] == 'yue.cui@geneegroup.com');
+        $this->assert($userNext['email'] == 'test@test.com');
     }
     public function testCanPost()
     {

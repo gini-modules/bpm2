@@ -20,7 +20,7 @@ class TestCamundaBase
     ];
 
     public function getEngineImpl(){
-        return $this->getImpl('engine', $this->config);
+        return new \Gini\BPM\Camunda720\Engine($this->config);
     }
 
     public function getList($type)
@@ -47,12 +47,9 @@ class TestCamundaBase
         // 广义的 process 分为 process-definition 和 process-instance
         // 这里 process 那么默认指的是 process-definition
         if($type == 'process') $type = 'process-definition';
-        $reflectionClass = new \ReflectionClass($this->getEngineImpl());
-        if($val) {
-            return $reflectionClass->newInstanceArgs($val);
-        }else{
-            return $reflectionClass->newInstanceWithoutConstructor();
-        }
+        $reflectionClass = new \ReflectionClass($type);
+        $arg = $val?[$this->getEngineImpl(), $val]:$this->getEngineImpl();
+        return $reflectionClass->newInstanceArgs($arg);
     }
 
     protected function assert(bool $param)
