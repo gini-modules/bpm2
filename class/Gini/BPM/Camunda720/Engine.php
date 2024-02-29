@@ -2,13 +2,13 @@
 
 namespace Gini\BPM\Camunda720;
 
-use Gini\BPM\Camunda\Decision;
-use Gini\BPM\Camunda\Execution;
-use Gini\BPM\Camunda\Group;
-use Gini\BPM\Camunda\Process;
-use Gini\BPM\Camunda\ProcessInstance;
-use Gini\BPM\Camunda\Task;
-use Gini\BPM\Camunda\User;
+use Gini\BPM\Camunda720\Decision;
+use Gini\BPM\Camunda720\Execution;
+use Gini\BPM\Camunda720\Group;
+use Gini\BPM\Camunda720\Process;
+use Gini\BPM\Camunda720\ProcessInstance;
+use Gini\BPM\Camunda720\Task;
+use Gini\BPM\Camunda720\User;
 class Engine implements \Gini\BPM\Driver\Engine {
 
     private $http;
