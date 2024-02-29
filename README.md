@@ -1,6 +1,23 @@
 # Gini BPM
 旨在提供一个BPM工作流引擎的抽象层, 同时提供一些命令行工具
 
+## Camunda 7.20 支持
+如果您使用的是 Camunda 7.20 以上的版本， 你只需要在使用的时候调用 Camunda720 驱动就好， 如下所示
+```php
+$engine = \Gini\BPM\Engine::of('Camunda720')
+```
+如果您使用 Camunda720 驱动，您需要注意以下几点：
+1. Camunda7.20 服务的 bpm id 不支持特殊字符分割， 您需要修改 BPMN 流程图中 General 下的 ID 表单项，及代码中的相关配置
+2. Camunda7.20 的验证方式和以前有所变化，之前是通过 cookie 进行验证，现在是通过 token 验证，默认使用了 HTTP Basic Authentication，你也可以通过重写 Gini\BPM\Camunda720\Engine auth 方法的方式使用您自己喜欢的验证方式
+```php
+  protected function auth($http, $username, $password){
+        $token = 'Basic '.base64_encode($username.'_'.$password);
+        $http->header('Authorization', $token);
+        return $http;
+  }
+```
+
+
 ### 基础操作
 ##### 程序
 ```php
